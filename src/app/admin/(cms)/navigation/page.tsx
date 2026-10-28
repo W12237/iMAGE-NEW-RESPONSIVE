@@ -1,3 +1,4 @@
+import { ActionForm } from "@/components/admin/action-form";
 import { NavigationEditor } from "@/components/admin/navigation-editor";
 import { prisma } from "@/lib/prisma";
 import { saveNavigation } from "../../actions";
@@ -24,7 +25,7 @@ export default async function Navigation() {
         </div>
       </header>
 
-      <form action={saveNavigation} className="admin-form">
+      <ActionForm action={saveNavigation} className="admin-form" submitLabel="Save Navigation">
         <NavigationEditor
           initialItems={items}
           globalSettings={
@@ -49,12 +50,7 @@ export default async function Navigation() {
             altAr: a.altAr,
           }))}
         />
-        <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
-          <button className="primary" type="submit">
-            Save navigation
-          </button>
-        </div>
-      </form>
+      </ActionForm>
     </>
   );
 }

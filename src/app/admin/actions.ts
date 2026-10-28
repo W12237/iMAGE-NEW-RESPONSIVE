@@ -82,7 +82,7 @@ export async function saveHomepage(_:ActionState, f:FormData):Promise<ActionStat
   const order=str(f,"sectionOrder").split(",").map(x=>x.trim()).filter(x=>["projects","lifestyle","stats","journal","closing"].includes(x));
   if(!sectionOrderSchema.safeParse(order).success)return {error:"Section order must contain each supported section exactly once."};
   await prisma.homepage.update({where:{id:"homepage"},data:colors});
-  await prisma.homepage.update({where:{id:"homepage"},data:{heroEnabled:bool(f,"heroEnabled"),heroEyebrowEn:str(f,"heroEyebrowEn"),heroEyebrowAr:str(f,"heroEyebrowAr"),heroTitleEn:str(f,"heroTitleEn"),heroTitleAr:str(f,"heroTitleAr"),heroNoteEn:str(f,"heroNoteEn"),heroNoteAr:str(f,"heroNoteAr"),heroDiscoverEn:str(f,"heroDiscoverEn"),heroDiscoverAr:str(f,"heroDiscoverAr"),heroMediaUrl:str(f,"heroMediaUrl"),heroMediaAltEn:str(f,"heroMediaAltEn"),heroMediaAltAr:str(f,"heroMediaAltAr"),projectsEnabled:bool(f,"projectsEnabled"),projectsHeadingEn:str(f,"projectsHeadingEn"),projectsHeadingAr:str(f,"projectsHeadingAr"),projectsDescriptionEn:str(f,"projectsDescriptionEn")||null,projectsDescriptionAr:str(f,"projectsDescriptionAr")||null,projectsExploreEn:str(f,"projectsExploreEn"),projectsExploreAr:str(f,"projectsExploreAr"),projectsEnquireEn:str(f,"projectsEnquireEn")||"Enquire",projectsEnquireAr:str(f,"projectsEnquireAr")||"استفسر الآن",projectsViewAllEn:str(f,"projectsViewAllEn")||"View All Projects",projectsViewAllAr:str(f,"projectsViewAllAr")||"جميع المشاريع",projectsSpacing:str(f,"projectsSpacing")||"standard",projectsTheme:str(f,"projectsTheme")||"light",projectsImagePosition:str(f,"projectsImagePosition")||"start",lifestyleEnabled:bool(f,"lifestyleEnabled"),lifestyleEyebrowEn:str(f,"lifestyleEyebrowEn"),lifestyleEyebrowAr:str(f,"lifestyleEyebrowAr"),lifestyleTitleEn:str(f,"lifestyleTitleEn"),lifestyleTitleAr:str(f,"lifestyleTitleAr"),lifestyleMediaUrl:str(f,"lifestyleMediaUrl"),lifestyleMediaAltEn:str(f,"lifestyleMediaAltEn"),lifestyleMediaAltAr:str(f,"lifestyleMediaAltAr"),statsEnabled:bool(f,"statsEnabled"),statsLabelEn:str(f,"statsLabelEn")||null,statsLabelAr:str(f,"statsLabelAr")||null,statsHeadingEn:str(f,"statsHeadingEn"),statsHeadingAr:str(f,"statsHeadingAr"),statsDescriptionEn:str(f,"statsDescriptionEn")||null,statsDescriptionAr:str(f,"statsDescriptionAr")||null,statsImageUrl:str(f,"statsImageUrl")||null,statsImageAltEn:str(f,"statsImageAltEn")||"Image Developments architecture",statsImageAltAr:str(f,"statsImageAltAr")||"العمارة المعاصرة في إيمدج للتطوير العقاري",statsImageFocalPoint:str(f,"statsImageFocalPoint")||"center",statsCtaLabelEn:str(f,"statsCtaLabelEn")||"Discover Our Story",statsCtaLabelAr:str(f,"statsCtaLabelAr")||"اكتشف قصتنا",statsCtaUrl:str(f,"statsCtaUrl")||"/about",journalEnabled:bool(f,"journalEnabled"),journalEyebrowEn:str(f,"journalEyebrowEn"),journalEyebrowAr:str(f,"journalEyebrowAr"),journalTitleEn:str(f,"journalTitleEn"),journalTitleAr:str(f,"journalTitleAr"),closingEnabled:bool(f,"closingEnabled"),closingEyebrowEn:str(f,"closingEyebrowEn"),closingEyebrowAr:str(f,"closingEyebrowAr"),closingTitleEn:str(f,"closingTitleEn"),closingTitleAr:str(f,"closingTitleAr"),closingDescriptionEn:str(f,"closingDescriptionEn")||null,closingDescriptionAr:str(f,"closingDescriptionAr")||null,closingFormHeadingEn:str(f,"closingFormHeadingEn")||null,closingFormHeadingAr:str(f,"closingFormHeadingAr")||null,closingSubmitLabelEn:str(f,"closingSubmitLabelEn")||null,closingSubmitLabelAr:str(f,"closingSubmitLabelAr")||null,closingSuccessMessageEn:str(f,"closingSuccessMessageEn")||null,closingSuccessMessageAr:str(f,"closingSuccessMessageAr")||null,closingCtaEn:str(f,"closingCtaEn"),closingCtaAr:str(f,"closingCtaAr"),closingCtaUrl:str(f,"closingCtaUrl"),sectionOrder:JSON.stringify(order)}});
+  await prisma.homepage.update({where:{id:"homepage"},data:{heroEnabled:bool(f,"heroEnabled"),heroEyebrowEn:str(f,"heroEyebrowEn"),heroEyebrowAr:str(f,"heroEyebrowAr"),heroTitleEn:str(f,"heroTitleEn"),heroTitleAr:str(f,"heroTitleAr"),heroNoteEn:str(f,"heroNoteEn"),heroNoteAr:str(f,"heroNoteAr"),heroDiscoverEn:str(f,"heroDiscoverEn"),heroDiscoverAr:str(f,"heroDiscoverAr"),heroMediaUrl:str(f,"heroMediaUrl"),heroMediaAltEn:str(f,"heroMediaAltEn"),heroMediaAltAr:str(f,"heroMediaAltAr"),projectsEnabled:bool(f,"projectsEnabled"),projectsHeadingEn:str(f,"projectsHeadingEn"),projectsHeadingAr:str(f,"projectsHeadingAr"),projectsDescriptionEn:str(f,"projectsDescriptionEn")||null,projectsDescriptionAr:str(f,"projectsDescriptionAr")||null,projectsExploreEn:str(f,"projectsExploreEn"),projectsExploreAr:str(f,"projectsExploreAr"),projectsEnquireEn:str(f,"projectsEnquireEn")||"Enquire",projectsEnquireAr:str(f,"projectsEnquireAr")||"استفسر الآن",projectsViewAllEn:str(f,"projectsViewAllEn")||"View All Projects",projectsViewAllAr:str(f,"projectsViewAllAr")||"جميع المشاريع",projectsSpacing:str(f,"projectsSpacing")||"standard",projectsTheme:str(f,"projectsTheme")||"light",projectsImagePosition:str(f,"projectsImagePosition")||"start",lifestyleEnabled:bool(f,"lifestyleEnabled"),lifestyleEyebrowEn:str(f,"lifestyleEyebrowEn"),lifestyleEyebrowAr:str(f,"lifestyleEyebrowAr"),lifestyleTitleEn:str(f,"lifestyleTitleEn"),lifestyleTitleAr:str(f,"lifestyleTitleAr"),lifestyleMediaUrl:str(f,"lifestyleMediaUrl"),lifestyleMediaAltEn:str(f,"lifestyleMediaAltEn"),lifestyleMediaAltAr:str(f,"lifestyleMediaAltAr"),lifestyleCtaLabelEn:str(f,"lifestyleCtaLabelEn")||"Discover Our Story",lifestyleCtaLabelAr:str(f,"lifestyleCtaLabelAr")||"اكتشف قصتنا",lifestyleCtaUrl:str(f,"lifestyleCtaUrl")||"/about",statsEnabled:bool(f,"statsEnabled"),statsLabelEn:str(f,"statsLabelEn")||null,statsLabelAr:str(f,"statsLabelAr")||null,statsHeadingEn:str(f,"statsHeadingEn")||"Stories, ideas, and updates.",statsHeadingAr:str(f,"statsHeadingAr")||"قصص وأفكار ومستجدات",statsDescriptionEn:str(f,"statsDescriptionEn")||null,statsDescriptionAr:str(f,"statsDescriptionAr")||null,statsImageUrl:str(f,"statsImageUrl")||null,statsImageAltEn:str(f,"statsImageAltEn")||"Image Developments architecture",statsImageAltAr:str(f,"statsImageAltAr")||"العمارة المعاصرة في إيمدج للتطوير العقاري",statsImageFocalPoint:str(f,"statsImageFocalPoint")||"center",statsCtaLabelEn:str(f,"statsCtaLabelEn")||"View All Articles",statsCtaLabelAr:str(f,"statsCtaLabelAr")||"عرض جميع المقالات",statsCtaUrl:str(f,"statsCtaUrl")||"/journal",statsJournalMode:str(f,"statsJournalMode")||"AUTO",statsJournalCategory:str(f,"statsJournalCategory")||"ALL",statsJournalCount:parseInt(str(f,"statsJournalCount")||"3",10)||3,statsJournalArticleIds:str(f,"statsJournalArticleIds")||"[]",journalEnabled:bool(f,"journalEnabled"),journalEyebrowEn:str(f,"journalEyebrowEn"),journalEyebrowAr:str(f,"journalEyebrowAr"),journalTitleEn:str(f,"journalTitleEn"),journalTitleAr:str(f,"journalTitleAr"),closingEnabled:bool(f,"closingEnabled"),closingEyebrowEn:str(f,"closingEyebrowEn"),closingEyebrowAr:str(f,"closingEyebrowAr"),closingTitleEn:str(f,"closingTitleEn"),closingTitleAr:str(f,"closingTitleAr"),closingDescriptionEn:str(f,"closingDescriptionEn")||null,closingDescriptionAr:str(f,"closingDescriptionAr")||null,closingFormHeadingEn:str(f,"closingFormHeadingEn")||null,closingFormHeadingAr:str(f,"closingFormHeadingAr")||null,closingSubmitLabelEn:str(f,"closingSubmitLabelEn")||null,closingSubmitLabelAr:str(f,"closingSubmitLabelAr")||null,closingSuccessMessageEn:str(f,"closingSuccessMessageEn")||null,closingSuccessMessageAr:str(f,"closingSuccessMessageAr")||null,closingCtaEn:str(f,"closingCtaEn"),closingCtaAr:str(f,"closingCtaAr"),closingCtaUrl:str(f,"closingCtaUrl"),sectionOrder:JSON.stringify(order)}});
   await prisma.homepage.update({where:{id:"homepage"},data:{openingEnabled:bool(f,"openingEnabled"),openingHeadlineEn:str(f,"openingHeadlineEn"),openingHeadlineAr:str(f,"openingHeadlineAr"),openingVideoDesktopUrl:str(f,"openingVideoDesktopUrl")||null,openingVideoMobileUrl:str(f,"openingVideoMobileUrl")||null,openingPosterUrl:str(f,"openingPosterUrl")||null,heroVideoDesktopUrl:str(f,"heroVideoDesktopUrl")||null,heroVideoMobileUrl:str(f,"heroVideoMobileUrl")||null,heroMobileMediaUrl:str(f,"heroMobileMediaUrl")||null,heroPosterUrl:str(f,"heroPosterUrl")||null}});
   for(const id of f.getAll("statId").map(String)){
     const isVisible = f.has(`statVisible_${id}`) ? bool(f, `statVisible_${id}`) : true;
@@ -113,8 +113,28 @@ export async function saveHomepage(_:ActionState, f:FormData):Promise<ActionStat
       },
     });
   }
+  const availableArticleIds = f.getAll("availableArticleId").map(String);
+  if (availableArticleIds.length > 0) {
+    const selectedArticlesWithOrder = availableArticleIds
+      .filter(id => bool(f, `manualArticleSelect_${id}`))
+      .map(id => ({
+        id,
+        order: parseInt(str(f, `manualArticleOrder_${id}`) || "99", 10),
+      }))
+      .sort((a, b) => a.order - b.order);
+    
+    const manualIds = selectedArticlesWithOrder.map(item => item.id);
+    await prisma.homepage.update({
+      where: { id: "homepage" },
+      data: { statsJournalArticleIds: JSON.stringify(manualIds) },
+    });
+  }
   await saveFontSizes(f);
-  revalidatePath("/en");revalidatePath("/ar");return {success:"Homepage saved."};
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/admin/homepage");
+  revalidatePath("/", "layout");
+  return {success:"Homepage saved."};
 }
 
 export async function saveAbout(_:ActionState,f:FormData):Promise<ActionState>{
@@ -155,7 +175,15 @@ export async function saveAbout(_:ActionState,f:FormData):Promise<ActionState>{
       if(existingBlockIds.has(id))await tx.aboutContentBlock.update({where:{id},data});else await tx.aboutContentBlock.create({data:{...data,homepageId:"homepage"}});
     }
   });
-  await saveFontSizes(f);revalidatePath("/en");revalidatePath("/ar");revalidatePath("/en/about");revalidatePath("/ar/about");revalidatePath("/admin/about");
+  await saveFontSizes(f);
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/en/about");
+  revalidatePath("/ar/about");
+  revalidatePath("/en/history");
+  revalidatePath("/ar/history");
+  revalidatePath("/admin/about");
+  revalidatePath("/", "layout");
   return{success:"About page saved."};
 }
 
@@ -210,16 +238,16 @@ export async function savePolicy(_:ActionState,f:FormData):Promise<ActionState>{
   const ids=f.getAll("policySectionId").map(String);if(ids.length>100||new Set(ids).size!==ids.length)return{error:"The policy section list is invalid. Refresh and try again."};
   const slugs=new Set<string>();for(const id of ids){const slug=str(f,`policySlug_${id}`);if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slugs.has(slug))return{error:"Every policy document needs a unique lowercase slug using letters, numbers and hyphens."};slugs.add(slug);if([`policyTitle_${id}En`,`policyTitle_${id}Ar`,`policyBody_${id}En`,`policyBody_${id}Ar`].some(key=>!str(f,key)))return{error:"Complete every policy document in English and Arabic."}}
   await prisma.$transaction(async tx=>{await tx.policyPage.update({where:{id:"policypage"},data:{heroEyebrowEn:str(f,"policyEyebrowEn"),heroEyebrowAr:str(f,"policyEyebrowAr"),heroTitleEn:str(f,"policyPageTitleEn"),heroTitleAr:str(f,"policyPageTitleAr"),heroBodyEn:str(f,"policyIntroEn"),heroBodyAr:str(f,"policyIntroAr")}});const existing=await tx.policyDocument.findMany({where:{policyPageId:"policypage"},select:{id:true}});const existingIds=new Set(existing.map(item=>item.id));const retained=ids.filter(id=>existingIds.has(id));await tx.policyDocument.deleteMany({where:{policyPageId:"policypage",...(retained.length?{id:{notIn:retained}}:{})}});for(const[index,id]of ids.entries()){const data={slug:str(f,`policySlug_${id}`),titleEn:str(f,`policyTitle_${id}En`),titleAr:str(f,`policyTitle_${id}Ar`),summaryEn:str(f,`policySummary_${id}En`),summaryAr:str(f,`policySummary_${id}Ar`),contentEn:str(f,`policyBody_${id}En`),contentAr:str(f,`policyBody_${id}Ar`),visible:bool(f,`policyVisible_${id}`),sortOrder:index};if(existingIds.has(id))await tx.policyDocument.update({where:{id},data});else await tx.policyDocument.create({data:{...data,policyPageId:"policypage"}})}});
-  await saveFontSizes(f);revalidatePath("/en/policy");revalidatePath("/ar/policy");revalidatePath("/admin/policy");return{success:"Policy page saved."};
+  await saveFontSizes(f);revalidatePath("/en/policy");revalidatePath("/ar/policy");revalidatePath("/admin/policy");revalidatePath("/", "layout");return{success:"Policy page saved."};
 }
 
 export async function saveTerms(_:ActionState,f:FormData):Promise<ActionState>{
   await requireAdmin();if(["termsEyebrowEn","termsEyebrowAr","termsPageTitleEn","termsPageTitleAr","termsIntroEn","termsIntroAr"].some(key=>!str(f,key)))return{error:"Complete all required page fields."};
   const ids=f.getAll("termsSectionId").map(String);if(ids.length>100||new Set(ids).size!==ids.length)return{error:"The terms section list is invalid. Refresh and try again."};const slugs=new Set<string>();for(const id of ids){const slug=str(f,`termsSlug_${id}`);if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slugs.has(slug))return{error:"Every terms section needs a unique lowercase slug using letters, numbers and hyphens."};slugs.add(slug);if([`termsTitle_${id}En`,`termsTitle_${id}Ar`,`termsBody_${id}En`,`termsBody_${id}Ar`].some(key=>!str(f,key)))return{error:"Complete every terms section in English and Arabic."}}
-  await prisma.$transaction(async tx=>{await tx.termsPage.update({where:{id:"termspage"},data:{heroEyebrowEn:str(f,"termsEyebrowEn"),heroEyebrowAr:str(f,"termsEyebrowAr"),heroTitleEn:str(f,"termsPageTitleEn"),heroTitleAr:str(f,"termsPageTitleAr"),heroBodyEn:str(f,"termsIntroEn"),heroBodyAr:str(f,"termsIntroAr")}});const existing=await tx.termsSection.findMany({where:{termsPageId:"termspage"},select:{id:true}});const existingIds=new Set(existing.map(item=>item.id));const retained=ids.filter(id=>existingIds.has(id));await tx.termsSection.deleteMany({where:{termsPageId:"termspage",...(retained.length?{id:{notIn:retained}}:{})}});for(const[index,id]of ids.entries()){const data={slug:str(f,`termsSlug_${id}`),titleEn:str(f,`termsTitle_${id}En`),titleAr:str(f,`termsTitle_${id}Ar`),contentEn:str(f,`termsBody_${id}En`),contentAr:str(f,`termsBody_${id}Ar`),visible:bool(f,`termsVisible_${id}`),sortOrder:index};if(existingIds.has(id))await tx.termsSection.update({where:{id},data});else await tx.termsSection.create({data:{...data,termsPageId:"termspage"}})}});await saveFontSizes(f);revalidatePath("/en/terms");revalidatePath("/ar/terms");revalidatePath("/admin/terms");return{success:"Terms page saved."};
+  await prisma.$transaction(async tx=>{await tx.termsPage.update({where:{id:"termspage"},data:{heroEyebrowEn:str(f,"termsEyebrowEn"),heroEyebrowAr:str(f,"termsEyebrowAr"),heroTitleEn:str(f,"termsPageTitleEn"),heroTitleAr:str(f,"termsPageTitleAr"),heroBodyEn:str(f,"termsIntroEn"),heroBodyAr:str(f,"termsIntroAr")}});const existing=await tx.termsSection.findMany({where:{termsPageId:"termspage"},select:{id:true}});const existingIds=new Set(existing.map(item=>item.id));const retained=ids.filter(id=>existingIds.has(id));await tx.termsSection.deleteMany({where:{termsPageId:"termspage",...(retained.length?{id:{notIn:retained}}:{})}});for(const[index,id]of ids.entries()){const data={slug:str(f,`termsSlug_${id}`),titleEn:str(f,`termsTitle_${id}En`),titleAr:str(f,`termsTitle_${id}Ar`),contentEn:str(f,`termsBody_${id}En`),contentAr:str(f,`termsBody_${id}Ar`),visible:bool(f,`termsVisible_${id}`),sortOrder:index};if(existingIds.has(id))await tx.termsSection.update({where:{id},data});else await tx.termsSection.create({data:{...data,termsPageId:"termspage"}})}});await saveFontSizes(f);revalidatePath("/en/terms");revalidatePath("/ar/terms");revalidatePath("/admin/terms");revalidatePath("/", "layout");return{success:"Terms page saved."};
 }
 
-export async function saveContactPage(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();if(["contactEyebrowEn","contactEyebrowAr","contactPageTitleEn","contactPageTitleAr","contactIntroEn","contactIntroAr"].some(key=>!str(f,key)))return{error:"Complete all required page fields."};await prisma.contactPage.update({where:{id:"contactpage"},data:{heroEyebrowEn:str(f,"contactEyebrowEn"),heroEyebrowAr:str(f,"contactEyebrowAr"),heroTitleEn:str(f,"contactPageTitleEn"),heroTitleAr:str(f,"contactPageTitleAr"),heroBodyEn:str(f,"contactIntroEn"),heroBodyAr:str(f,"contactIntroAr")}});await saveFontSizes(f);revalidatePath("/en/contact");revalidatePath("/ar/contact");revalidatePath("/admin/contact");return{success:"Contact page saved."};}
+export async function saveContactPage(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();if(["contactEyebrowEn","contactEyebrowAr","contactPageTitleEn","contactPageTitleAr","contactIntroEn","contactIntroAr"].some(key=>!str(f,key)))return{error:"Complete all required page fields."};await prisma.contactPage.update({where:{id:"contactpage"},data:{heroEyebrowEn:str(f,"contactEyebrowEn"),heroEyebrowAr:str(f,"contactEyebrowAr"),heroTitleEn:str(f,"contactPageTitleEn"),heroTitleAr:str(f,"contactPageTitleAr"),heroBodyEn:str(f,"contactIntroEn"),heroBodyAr:str(f,"contactIntroAr")}});await saveFontSizes(f);revalidatePath("/en/contact");revalidatePath("/ar/contact");revalidatePath("/admin/contact");revalidatePath("/", "layout");return{success:"Contact page saved."};}
 
 export async function saveProject(_:ActionState,f:FormData):Promise<ActionState>{
   await requireAdmin(); 
@@ -266,19 +294,54 @@ export async function saveProject(_:ActionState,f:FormData):Promise<ActionState>
     seoDescriptionAr:str(f,"seoDescriptionAr")||null,
     ogImageUrl:str(f,"ogImageUrl")||null
   };
-  const id=str(f,"id");
-  try{
-    if(id)await prisma.project.update({where:{id},data:{...parsed.data,...extra}});
-    else await prisma.project.create({data:{...parsed.data,...extra}});
-  }catch{return{error:"The slug must be unique."}}
+  const id = str(f, "id");
+  try {
+    if (id) {
+      const existing = await prisma.project.findUnique({ where: { id } });
+      if (existing && existing.slug !== parsed.data.slug) {
+        await prisma.projectRedirect.upsert({
+          where: { sourceSlug: existing.slug },
+          update: { targetSlug: parsed.data.slug },
+          create: { sourceSlug: existing.slug, targetSlug: parsed.data.slug },
+        });
+        revalidatePath(`/en/projects/${existing.slug}`);
+        revalidatePath(`/ar/projects/${existing.slug}`);
+      }
+      await prisma.project.update({ where: { id }, data: { ...parsed.data, ...extra } });
+    } else {
+      await prisma.project.create({ data: { ...parsed.data, ...extra } });
+    }
+  } catch {
+    return { error: "The slug must be unique." };
+  }
+
+  revalidatePath(`/en/projects/${parsed.data.slug}`);
+  revalidatePath(`/ar/projects/${parsed.data.slug}`);
   revalidatePath("/admin/projects");
   revalidatePath("/en");
   revalidatePath("/ar");
   revalidatePath("/en/projects");
   revalidatePath("/ar/projects");
+  revalidatePath("/", "layout");
   redirect("/admin/projects");
 }
-export async function deleteProject(f:FormData){await requireAdmin();await prisma.project.delete({where:{id:str(f,"id")}});revalidatePath("/admin/projects");revalidatePath("/en");revalidatePath("/ar");revalidatePath("/en/projects");revalidatePath("/ar/projects");}
+
+export async function deleteProject(f: FormData) {
+  await requireAdmin();
+  const id = str(f, "id");
+  const existing = await prisma.project.findUnique({ where: { id } });
+  await prisma.project.delete({ where: { id } });
+  if (existing) {
+    revalidatePath(`/en/projects/${existing.slug}`);
+    revalidatePath(`/ar/projects/${existing.slug}`);
+  }
+  revalidatePath("/admin/projects");
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/en/projects");
+  revalidatePath("/ar/projects");
+  revalidatePath("/", "layout");
+}
 
 export async function updateLead(f:FormData){await requireAdmin();const id=str(f,"id");const status=str(f,"status");if(!["NEW","CONTACTED","QUALIFIED","CLOSED"].includes(status))return;await prisma.contactSubmission.update({where:{id},data:{status,notes:str(f,"notes")||null}});revalidatePath("/admin/leads");}
 export async function deleteLead(f:FormData){await requireAdmin();await prisma.contactSubmission.delete({where:{id:str(f,"id")}});revalidatePath("/admin/leads");}
@@ -379,9 +442,26 @@ export async function saveNews(_:ActionState,f:FormData):Promise<ActionState>{
   revalidatePath("/ar/journal");
   revalidatePath(`/en/journal/${parsed.data.slug}`);
   revalidatePath(`/ar/journal/${parsed.data.slug}`);
+  revalidatePath("/", "layout");
   redirect("/admin/news");
 }
-export async function deleteNews(f:FormData){await requireAdmin();await prisma.newsArticle.update({where:{id:str(f,"id")},data:{status:"ARCHIVED",featured:false}});revalidatePath("/admin/news");}
+
+export async function deleteNews(f: FormData) {
+  await requireAdmin();
+  const id = str(f, "id");
+  const existing = await prisma.newsArticle.findUnique({ where: { id } });
+  await prisma.newsArticle.update({ where: { id }, data: { status: "ARCHIVED", featured: false } });
+  if (existing) {
+    revalidatePath(`/en/journal/${existing.slug}`);
+    revalidatePath(`/ar/journal/${existing.slug}`);
+  }
+  revalidatePath("/admin/news");
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/en/journal");
+  revalidatePath("/ar/journal");
+  revalidatePath("/", "layout");
+}
 
 export async function saveJournalSettings(_:ActionState,f:FormData):Promise<ActionState>{
   await requireAdmin();
@@ -431,14 +511,15 @@ export async function saveJournalSettings(_:ActionState,f:FormData):Promise<Acti
   revalidatePath("/ar/journal");
   revalidatePath("/en");
   revalidatePath("/ar");
+  revalidatePath("/", "layout");
 
   return { success: "Journal page settings saved successfully." };
 }
 
-export async function saveNavigation(f: FormData) {
+export async function saveNavigation(_: ActionState, f: FormData): Promise<ActionState> {
   await requireAdmin();
   const ids = f.getAll("id").map(String);
-  if (ids.length > 50 || new Set(ids).size !== ids.length) return;
+  if (ids.length > 50 || new Set(ids).size !== ids.length) return { error: "The navigation items list is invalid. Refresh and try again." };
 
   const items = ids.map((id, sortOrder) => ({
     id,
@@ -454,7 +535,9 @@ export async function saveNavigation(f: FormData) {
     sortOrder,
   }));
 
-  if (items.some((item) => !item.labelEn || !item.labelAr || !safeUrl.safeParse(item.url).success)) return;
+  if (items.some((item) => !item.labelEn || !item.labelAr || !safeUrl.safeParse(item.url).success)) {
+    return { error: "Complete all navigation link labels in English and Arabic with valid URLs." };
+  }
 
   const defaultMenuUrl = str(f, "defaultMenuMediaUrl");
   const defaultMenuFocalPoint = str(f, "defaultMenuMediaFocalPoint") || "center";
@@ -513,8 +596,67 @@ export async function saveNavigation(f: FormData) {
   revalidatePath("/ar/contact");
   revalidatePath("/en/careers");
   revalidatePath("/ar/careers");
+  revalidatePath("/en/history");
+  revalidatePath("/ar/history");
+  revalidatePath("/en/team");
+  revalidatePath("/ar/team");
+  revalidatePath("/en/partners");
+  revalidatePath("/ar/partners");
+  revalidatePath("/en/policy");
+  revalidatePath("/ar/policy");
+  revalidatePath("/en/terms");
+  revalidatePath("/ar/terms");
+  revalidatePath("/", "layout");
+  return { success: "Navigation links saved." };
 }
-export async function saveSettings(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();const email=str(f,"contactEmail");if(!loginSchema.shape.email.safeParse(email).success)return{error:"Enter a valid contact email."};const ids=f.getAll("socialId").map(String);if(ids.length>20||new Set(ids).size!==ids.length)return{error:"The social links list is invalid. Refresh and try again."};const socials=ids.map((id,sortOrder)=>({name:str(f,`socialName_${id}`),url:str(f,`socialUrl_${id}`),svgIcon:str(f,`socialSvg_${id}`),sortOrder}));for(const social of socials){if(!social.name||social.name.length>50)return{error:"Enter a social network name of 50 characters or fewer."};if(!/^https?:\/\//i.test(social.url)||!safeUrl.safeParse(social.url).success)return{error:`Enter a valid public URL for ${social.name}.`};if(social.svgIcon.length>20000||!/^<svg(?:\s|>)/i.test(social.svgIcon)||!/<\/svg>$/i.test(social.svgIcon))return{error:`Paste a complete SVG icon for ${social.name}.`}}await prisma.$transaction(async tx=>{await tx.globalSettings.update({where:{id:"global"},data:{siteNameEn:str(f,"siteNameEn"),siteNameAr:str(f,"siteNameAr"),contactEmail:email,phone:str(f,"phone"),hotline:str(f,"hotline")||"17087",companyBrochureUrl:str(f,"companyBrochureUrl")||null,workingHoursEn:str(f,"workingHoursEn")||"Sunday - Thursday: 9:00 AM - 6:00 PM",workingHoursAr:str(f,"workingHoursAr")||"الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م",addressEn:str(f,"addressEn"),addressAr:str(f,"addressAr"),mapUrl:str(f,"mapUrl")||null,descriptionEn:str(f,"descriptionEn")||null,descriptionAr:str(f,"descriptionAr")||null,footerExploreHeadingEn:str(f,"footerExploreHeadingEn")||"Explore",footerExploreHeadingAr:str(f,"footerExploreHeadingAr")||"استكشف",footerProjectsHeadingEn:str(f,"footerProjectsHeadingEn")||"Our Projects",footerProjectsHeadingAr:str(f,"footerProjectsHeadingAr")||"مشاريعنا",footerContactHeadingEn:str(f,"footerContactHeadingEn")||"Contact",footerContactHeadingAr:str(f,"footerContactHeadingAr")||"تواصل معنا",callbackEnabled:bool(f,"callbackEnabled"),callbackLabelEn:str(f,"callbackLabelEn")||"Request a Call Back",callbackLabelAr:str(f,"callbackLabelAr")||"طلب معاودة الاتصال",copyrightEn:str(f,"copyrightEn"),copyrightAr:str(f,"copyrightAr"),defaultSeoTitleEn:str(f,"defaultSeoTitleEn"),defaultSeoTitleAr:str(f,"defaultSeoTitleAr"),defaultSeoDescriptionEn:str(f,"defaultSeoDescriptionEn"),defaultSeoDescriptionAr:str(f,"defaultSeoDescriptionAr"),defaultOgImageUrl:str(f,"defaultOgImageUrl")||null,menuMediaUrl:str(f,"menuMediaUrl"),menuMediaAltEn:str(f,"menuMediaAltEn"),menuMediaAltAr:str(f,"menuMediaAltAr")}});await tx.socialLink.deleteMany({where:{globalSettingsId:"global"}});if(socials.length)await tx.socialLink.createMany({data:socials.map(item=>({...item,globalSettingsId:"global"}))})});revalidatePath("/en");revalidatePath("/ar");revalidatePath("/admin/settings");revalidatePath("/","layout");return{success:"Global settings saved."};}
+export async function saveSettings(_:ActionState,f:FormData):Promise<ActionState>{
+  await requireAdmin();
+  const email=str(f,"contactEmail");
+  if(!loginSchema.shape.email.safeParse(email).success)return{error:"Enter a valid contact email."};
+  const ids=f.getAll("socialId").map(String);
+  if(ids.length>20||new Set(ids).size!==ids.length)return{error:"The social links list is invalid. Refresh and try again."};
+  const socials=ids.map((id,sortOrder)=>({name:str(f,`socialName_${id}`),url:str(f,`socialUrl_${id}`),svgIcon:str(f,`socialSvg_${id}`),sortOrder}));
+  for(const social of socials){
+    if(!social.name||social.name.length>50)return{error:"Enter a social network name of 50 characters or fewer."};
+    if(!/^https?:\/\//i.test(social.url)||!safeUrl.safeParse(social.url).success)return{error:`Enter a valid public URL for ${social.name}.`};
+    if(social.svgIcon.length>20000||!/^<svg(?:\s|>)/i.test(social.svgIcon)||!/<\/svg>$/i.test(social.svgIcon))return{error:`Paste a complete SVG icon for ${social.name}.`};
+  }
+  await prisma.$transaction(async tx=>{
+    await tx.globalSettings.update({
+      where:{id:"global"},
+      data:{
+        siteNameEn:str(f,"siteNameEn"),siteNameAr:str(f,"siteNameAr"),contactEmail:email,phone:str(f,"phone"),hotline:str(f,"hotline")||"17087",companyBrochureUrl:str(f,"companyBrochureUrl")||null,workingHoursEn:str(f,"workingHoursEn")||"Sunday - Thursday: 9:00 AM - 6:00 PM",workingHoursAr:str(f,"workingHoursAr")||"الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م",addressEn:str(f,"addressEn"),addressAr:str(f,"addressAr"),mapUrl:str(f,"mapUrl")||null,descriptionEn:str(f,"descriptionEn")||null,descriptionAr:str(f,"descriptionAr")||null,footerExploreHeadingEn:str(f,"footerExploreHeadingEn")||"Explore",footerExploreHeadingAr:str(f,"footerExploreHeadingAr")||"استكشف",footerProjectsHeadingEn:str(f,"footerProjectsHeadingEn")||"Our Projects",footerProjectsHeadingAr:str(f,"footerProjectsHeadingAr")||"مشاريعنا",footerContactHeadingEn:str(f,"footerContactHeadingEn")||"Contact",footerContactHeadingAr:str(f,"footerContactHeadingAr")||"تواصل معنا",callbackEnabled:bool(f,"callbackEnabled"),callbackLabelEn:str(f,"callbackLabelEn")||"Request a Call Back",callbackLabelAr:str(f,"callbackLabelAr")||"طلب معاودة الاتصال",copyrightEn:str(f,"copyrightEn"),copyrightAr:str(f,"copyrightAr"),defaultSeoTitleEn:str(f,"defaultSeoTitleEn"),defaultSeoTitleAr:str(f,"defaultSeoTitleAr"),defaultSeoDescriptionEn:str(f,"defaultSeoDescriptionEn"),defaultSeoDescriptionAr:str(f,"defaultSeoDescriptionAr"),defaultOgImageUrl:str(f,"defaultOgImageUrl")||null,menuMediaUrl:str(f,"menuMediaUrl"),menuMediaAltEn:str(f,"menuMediaAltEn"),menuMediaAltAr:str(f,"menuMediaAltAr")
+      }
+    });
+    await tx.socialLink.deleteMany({where:{globalSettingsId:"global"}});
+    if(socials.length)await tx.socialLink.createMany({data:socials.map(item=>({...item,globalSettingsId:"global"}))});
+  });
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/admin/settings");
+  revalidatePath("/en/projects");
+  revalidatePath("/ar/projects");
+  revalidatePath("/en/journal");
+  revalidatePath("/ar/journal");
+  revalidatePath("/en/about");
+  revalidatePath("/ar/about");
+  revalidatePath("/en/contact");
+  revalidatePath("/ar/contact");
+  revalidatePath("/en/careers");
+  revalidatePath("/ar/careers");
+  revalidatePath("/en/history");
+  revalidatePath("/ar/history");
+  revalidatePath("/en/team");
+  revalidatePath("/ar/team");
+  revalidatePath("/en/partners");
+  revalidatePath("/ar/partners");
+  revalidatePath("/en/policy");
+  revalidatePath("/ar/policy");
+  revalidatePath("/en/terms");
+  revalidatePath("/ar/terms");
+  revalidatePath("/", "layout");
+  return { success: "Global settings saved." };
+}
 
 export async function uploadMedia(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();const file=f.get("file");if(!(file instanceof File)||file.size===0)return{error:"Choose an image or video."};const result=await storeMedia(file);if(result.error)return{error:result.error};if(result.asset&&(str(f,"altEn")||str(f,"altAr")))await prisma.mediaAsset.update({where:{id:result.asset.id},data:{altEn:str(f,"altEn")||null,altAr:str(f,"altAr")||null}});revalidatePath("/admin/media");revalidatePath("/admin/homepage");return{success:`${result.asset?.kind==="VIDEO"?"Video":"Image"} uploaded to the Media Library.`};}
 
@@ -580,6 +722,7 @@ export async function saveCareerJob(_:ActionState, f:FormData):Promise<ActionSta
   revalidatePath("/admin/careers");
   revalidatePath("/en/careers");
   revalidatePath("/ar/careers");
+  revalidatePath("/", "layout");
   return{success:"Career vacancy saved."};
 }
 
@@ -590,6 +733,7 @@ export async function deleteCareerJob(f:FormData){
   revalidatePath("/admin/careers");
   revalidatePath("/en/careers");
   revalidatePath("/ar/careers");
+  revalidatePath("/", "layout");
 }
 
 export async function updateCareerApplicationStatus(f:FormData){
@@ -643,6 +787,9 @@ export async function saveProjectsHero(_: ActionState, f: FormData): Promise<Act
   revalidatePath("/en/projects");
   revalidatePath("/ar/projects");
   revalidatePath("/admin/projects");
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/", "layout");
   return { success: "Projects hero and reload animation settings saved successfully." };
 }
 
@@ -689,6 +836,7 @@ export async function saveProjectsCollectionSettings(_: ActionState, f: FormData
   revalidatePath("/admin/projects");
   revalidatePath("/en");
   revalidatePath("/ar");
+  revalidatePath("/", "layout");
   return { success: "Projects collection settings saved successfully." };
 }
 
@@ -721,6 +869,7 @@ export async function saveCareersPageContent(_: ActionState, f: FormData): Promi
   revalidatePath("/en/careers");
   revalidatePath("/ar/careers");
   revalidatePath("/admin/careers");
+  revalidatePath("/", "layout");
   return { success: "Careers page content saved successfully." };
 }
 
@@ -736,4 +885,5 @@ export async function toggleCareerJobStatus(f: FormData) {
   revalidatePath("/admin/careers");
   revalidatePath("/en/careers");
   revalidatePath("/ar/careers");
+  revalidatePath("/", "layout");
 }

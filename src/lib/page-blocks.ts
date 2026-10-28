@@ -16,7 +16,7 @@ export const BUILTIN_BLOCKS={
     {key:"HOME_HERO",label:"Hero",description:"Full-screen video or image with the main headline.",editHref:"/admin/homepage"},
     {key:"HOME_PROJECTS",label:"Featured projects",description:"Showcase of published, featured developments.",editHref:"/admin/projects"},
     {key:"HOME_LIVING",label:"Living story",description:"Parallax lifestyle images with key stats.",editHref:"/admin/homepage"},
-    {key:"HOME_STATS",label:"Stats strip",description:"Row of headline numbers.",editHref:"/admin/homepage"},
+    {key:"HOME_STATS",label:"News & Journal",description:"Featured stories, ideas, and editorial updates.",editHref:"/admin/homepage"},
     {key:"HOME_JOURNAL",label:"Journal highlights",description:"Featured news stories.",editHref:"/admin/news"},
     contactForm(),
   ],

@@ -31,9 +31,25 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           <h1>Edit Project: {item.nameEn}</h1>
           <span>Update architectural photography, bilingual copy, project highlights, and status.</span>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <Link className="secondary" href="/en/projects" target="_blank">
-            View Public Page ↗
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <span style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Preview:</span>
+          <Link
+            className="secondary"
+            href={`/en/projects/${item.slug}${item.status !== "PUBLISHED" ? "?preview=true" : ""}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: "13px" }}
+          >
+            English Page ↗
+          </Link>
+          <Link
+            className="secondary"
+            href={`/ar/projects/${item.slug}${item.status !== "PUBLISHED" ? "?preview=true" : ""}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: "13px" }}
+          >
+            صفحة المشروع بالعربية ↗
           </Link>
         </div>
       </header>

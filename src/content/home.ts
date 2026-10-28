@@ -51,6 +51,7 @@ export type HomeContent = {
   lifestyle: { enabled?: boolean; eyebrow: string; title: string; image?: string; alt?: string; ctaLabel?: string; ctaUrl?: string };
   stats: CompanyStatItem[];
   statsSection?: StatsSectionContent;
+  newsJournalSection?: HomeJournalSectionContent;
   journal: { enabled?: boolean; eyebrow: string; title: string; stories: { slug?: string; date: string; title: string; image: string; alt?: string }[] };
   closing: {
     enabled?: boolean;
@@ -88,6 +89,44 @@ export type HomeContent = {
   common: { projects: string; explore: string; menu: string; close: string; language: string; contact: string; rights: string; statsHeading?: string };
   customSections?: PageSectionContent[];
   pageSectionsByPage?: Record<string,PageSectionContent[]>;
+};
+
+export type HomeJournalArticle = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  coverImageUrl: string;
+  coverImageAlt: string;
+  focalPoint?: string;
+  publicationDate: string;
+  rawDate: string;
+  category: string;
+  categoryLabel?: string;
+  href: string;
+};
+
+export type HomeJournalSectionContent = {
+  enabled: boolean;
+  label: string;
+  heading: string;
+  description?: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  mode: "AUTO" | "MANUAL";
+  categoryFilter?: string;
+  articlesCount: number;
+  articles: HomeJournalArticle[];
+};
+
+export const JOURNAL_CATEGORY_LABELS: Record<string, { en: string; ar: string }> = {
+  ALL: { en: "All", ar: "الكل" },
+  ARCHITECTURE: { en: "Architecture", ar: "عمارة وتصميم" },
+  CONSTRUCTION: { en: "Construction", ar: "إنشاءات وتطوير" },
+  EVENTS: { en: "Events", ar: "فعاليات ومناسبات" },
+  COMMUNITY: { en: "Community", ar: "مجتمع وحياة" },
+  DESIGN: { en: "Design", ar: "تصميم داخلي" },
+  NEWS: { en: "News", ar: "أخبار ومستجدات" },
 };
 
 export type CompanyStatItem = {
@@ -176,6 +215,7 @@ export type ProjectDetailData = {
   seoTitle?: string;
   seoDescription?: string;
   ogImageUrl?: string;
+  status?: string;
 };
 
 export type ProjectDetailPageContent = HomeContent & {

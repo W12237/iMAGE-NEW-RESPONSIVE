@@ -14,6 +14,7 @@ import { PageBlocks, pageBlockLabel, pageBlocksFor } from "./page-blocks";
 import { SmoothScroll } from "./smooth-scroll";
 import { usePageTransition } from "./page-transition";
 import { StatsStrip } from "./stats-strip";
+import { HomeNewsJournal } from "./home-news-journal";
 
 import { HERO_TIMING } from "@/lib/hero-motion";
 
@@ -606,4 +607,4 @@ function FooterInner(props: { copy: HomeContent; page?: "home" | "projects" | "d
   );
 }
 
-export function HomepageExperience({ copy }: { copy: HomeContent }) { return <><SmoothScroll /><SiteHeader copy={copy} /><main><PageBlocks blocks={pageBlocksFor(copy, "home")} builtins={{ HOME_HERO: <Hero copy={copy} />, HOME_PROJECTS: copy.visibility?.projects !== false && <ProjectShowcase copy={copy} label={pageBlockLabel(pageBlocksFor(copy, "home"), "HOME_PROJECTS", copy.locale)} />, HOME_LIVING: <LivingStory copy={copy} />, HOME_STATS: <StatsStrip copy={copy} />, HOME_JOURNAL: <Journal copy={copy} />, CONTACT_FORM: <GlobalContactForm copy={copy} /> }} /></main><Footer copy={copy} /></>; }
+export function HomepageExperience({ copy }: { copy: HomeContent }) { return <><SmoothScroll /><SiteHeader copy={copy} /><main><PageBlocks blocks={pageBlocksFor(copy, "home")} builtins={{ HOME_HERO: <Hero copy={copy} />, HOME_PROJECTS: copy.visibility?.projects !== false && <ProjectShowcase copy={copy} label={pageBlockLabel(pageBlocksFor(copy, "home"), "HOME_PROJECTS", copy.locale)} />, HOME_LIVING: <LivingStory copy={copy} />, HOME_STATS: copy.newsJournalSection ? <HomeNewsJournal copy={copy} /> : <StatsStrip copy={copy} />, HOME_JOURNAL: <Journal copy={copy} />, CONTACT_FORM: <GlobalContactForm copy={copy} /> }} /></main><Footer copy={copy} /></>; }

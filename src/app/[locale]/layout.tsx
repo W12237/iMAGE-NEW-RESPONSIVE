@@ -4,6 +4,8 @@ import { getHomepageContent } from "@/lib/content";
 import { PageTransitionProvider } from "@/components/page-transition";
 import { EnquiryProvider } from "@/components/enquiry-provider";
 
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return [{ locale: "en" }, { locale: "ar" }];
 }
@@ -27,7 +29,7 @@ export default async function LocaleLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <PageTransitionProvider copy={copy}>
           <EnquiryProvider copy={copy}>
             {children}

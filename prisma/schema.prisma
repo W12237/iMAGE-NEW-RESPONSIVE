@@ -123,6 +123,9 @@ model Homepage {
   lifestyleMediaUrl      String
   lifestyleMediaAltEn    String
   lifestyleMediaAltAr    String
+  lifestyleCtaLabelEn    String?             @default("Discover Our Story")
+  lifestyleCtaLabelAr    String?             @default("اكتشف قصتنا")
+  lifestyleCtaUrl        String?             @default("/about")
   statsEnabled           Boolean             @default(true)
   statsBackgroundRgb     String              @default("255, 255, 255")
   statsLabelEn           String?             @default("About Image")
@@ -138,6 +141,10 @@ model Homepage {
   statsCtaLabelEn        String?             @default("Discover Our Story")
   statsCtaLabelAr        String?             @default("اكتشف قصتنا")
   statsCtaUrl            String?             @default("/about")
+  statsJournalMode       String              @default("AUTO")
+  statsJournalCategory   String?             @default("ALL")
+  statsJournalCount      Int                 @default(3)
+  statsJournalArticleIds String              @default("[]")
   journalEnabled         Boolean             @default(true)
   journalBackgroundRgb   String              @default("255, 255, 255")
   journalEyebrowEn       String
@@ -389,6 +396,13 @@ model NewsArticle {
 }
 
 model ArticleRedirect {
+  id         String   @id @default(cuid())
+  sourceSlug String   @unique
+  targetSlug String
+  createdAt  DateTime @default(now())
+}
+
+model ProjectRedirect {
   id         String   @id @default(cuid())
   sourceSlug String   @unique
   targetSlug String

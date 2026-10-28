@@ -552,11 +552,13 @@ export function GlobalContactForm({
 
   // Description: "Tell us which project interests you, and our team will help you explore the details."
   const displayDescription =
-    description ??
-    copy.closing.description ??
-    (ar
+    description !== undefined
+      ? description
+      : copy.closing.description !== undefined
+      ? copy.closing.description
+      : ar
       ? "أخبرنا بالمشروع الذي يهمك، وسيساعدك فريقنا في التعرف على التفاصيل."
-      : "Tell us which project interests you, and our team will help you explore the details.");
+      : "Tell us which project interests you, and our team will help you explore the details.";
 
   // Hotline: inherited from global contact settings or default 17087
   const hotlineDisplay = hotline || copy.settings?.hotline || "17087";
@@ -568,14 +570,15 @@ export function GlobalContactForm({
 
   // Form Card Heading:
   const formTitle =
-    copy.closing.formHeading ||
-    (variant === "contact"
-      ? ar
-        ? "أرسل لنا استفسارك"
-        : "Send us an enquiry"
-      : ar
-      ? "طلب معاودة الاتصال"
-      : "Request a Call Back");
+    (copy.closing.formHeading !== undefined && copy.closing.formHeading !== null && copy.closing.formHeading !== "")
+      ? copy.closing.formHeading
+      : (variant === "contact"
+        ? ar
+          ? "أرسل لنا استفسارك"
+          : "Send us an enquiry"
+        : ar
+        ? "طلب معاودة الاتصال"
+        : "Request a Call Back");
 
   const hasCustomBg = Boolean(
     copy.backgrounds?.closing &&
@@ -616,7 +619,9 @@ export function GlobalContactForm({
               <h2 id={`${id}-heading`} className="contact-card-heading">
                 {displayHeading}
               </h2>
-              <p className="contact-card-desc">{displayDescription}</p>
+              {Boolean(displayDescription?.trim()) && (
+                <p className="contact-card-desc">{displayDescription}</p>
+              )}
             </div>
 
             <div className="contact-card-bottom">

@@ -19,8 +19,9 @@ import type {
   HistoryPageContent,
   ContactPageContent,
   PageSectionContent,
+  HomeJournalArticle,
 } from "../content/home";
-import { content, siteMedia } from "../content/home";
+import { content, siteMedia, JOURNAL_CATEGORY_LABELS } from "../content/home";
 import { normalizePageSectionLayout } from "./page-section-layouts";
 import { normalizeBlockKind } from "./page-blocks";
 import { parseBlockSettings } from "./block-settings";
@@ -54,9 +55,9 @@ export const getPageSections=cache(async(locale:Locale,page:PublicPageKey)=>{
 export const getHomepageContent = cache(async (locale: Locale): Promise<HomeContent> => {
   if (!process.env.DATABASE_URL) {
     const base={...content[locale],backgrounds:{opening:"255, 255, 255",hero:"255, 255, 255",about:"255, 255, 255",projects:"255, 255, 255",lifestyle:"255, 255, 255",stats:"255, 255, 255",journal:"255, 255, 255",closing:"255, 255, 255",footer:"255, 255, 255"}};
-    return {...base,opening:{enabled:true,headline:locale==="ar"?"منظور جديد":"A new perspective",poster:siteMedia.hero},projectsOpening:{enabled:true,headline:locale==="ar"?"محفظة المشاريع":"Our Portfolio"},hero:{...base.hero,image:siteMedia.hero,poster:siteMedia.hero,alt:"Contemporary residence framed by palms"},lifestyle:{...base.lifestyle,image:siteMedia.lifestyle,alt:"Sunlit living space opening to the landscape"},visibility:{projects:true,stats:true},sectionOrder:["projects","lifestyle","stats","journal","closing"],projectsSection:{heading:locale==="ar"?"المشاريع":"Projects",description:locale==="ar"?"مجموعة مختارة من الوجهات السكنية والمختلطة التي تصنع ملامح جديدة للحياة الحضرية في مصر.":"A curated collection of residential and mixed-use destinations shaping Egypt's urban landscape.",exploreLabel:locale==="ar"?"اكتشف المكان":"Explore the place",enquireLabel:locale==="ar"?"استفسر الآن":"Enquire",viewAllLabel:locale==="ar"?"جميع المشاريع":"View All Projects",spacing:"standard",theme:"light",imagePosition:"start"},settings:{email:"hello@imagedevelopments.com",phone:"+20 2 0000 0000",hotline:"17087",workingHours:locale==="ar"?"الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م":"Sunday - Thursday: 9:00 AM - 6:00 PM",address:locale==="ar"?"القاهرة · مصر":"Cairo · Egypt",menuImage:siteMedia.detail,menuImageAlt:"Warm architectural interior",socials:[{label:"Instagram",url:"https://instagram.com"},{label:"LinkedIn",url:"https://linkedin.com"},{label:"Facebook",url:"https://facebook.com"}],seoTitle:"Image Developments — Places with perspective",seoDescription:"Image Developments creates considered communities across Egypt."},common:{...base.common,statsHeading:locale==="ar"?"إيمدج بالأرقام":"Image in numbers"}};
+    return {...base,opening:{enabled:true,headline:locale==="ar"?"منظور جديد":"A new perspective",poster:siteMedia.hero},projectsOpening:{enabled:true,headline:locale==="ar"?"محفظة المشاريع":"Our Portfolio"},hero:{...base.hero,image:siteMedia.hero,poster:siteMedia.hero,alt:"Contemporary residence framed by palms"},lifestyle:{...base.lifestyle,image:siteMedia.lifestyle,alt:"Sunlit living space opening to the landscape"},visibility:{projects:true,stats:true},sectionOrder:["projects","lifestyle","stats","journal","closing"],projectsSection:{heading:locale==="ar"?"المشاريع":"Projects",description:locale==="ar"?"مجموعة مختارة من الوجهات السكنية والمختلطة التي تصنع ملامح جديدة للحياة الحضرية في مصر.":"A curated collection of residential and mixed-use destinations shaping Egypt's urban landscape.",exploreLabel:locale==="ar"?"اكتشف المكان":"Explore the place",enquireLabel:locale==="ar"?"استفسر الآن":"Enquire",viewAllLabel:locale==="ar"?"جميع المشاريع":"View All Projects",spacing:"standard",theme:"light",imagePosition:"start"},newsJournalSection:{enabled:true,label:locale==="ar"?"الأخبار والمقالات":"News & Journal",heading:locale==="ar"?"قصص وأفكار ومستجدات":"Stories, ideas, and updates.",description:locale==="ar"?"رؤى معمارية ومحطات مجتمعية ومستجدات متواصلة تشكّل ملامح وجهاتنا العمرانية.":"Perspectives on architecture, community milestones, and the ongoing progress shaping our destinations.",ctaLabel:locale==="ar"?"عرض جميع المقالات":"View All Articles",ctaUrl:`/${locale}/journal`,mode:"AUTO",categoryFilter:"ALL",articlesCount:3,articles:[]},settings:{email:"hello@imagedevelopments.com",phone:"+20 2 0000 0000",hotline:"17087",workingHours:locale==="ar"?"الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م":"Sunday - Thursday: 9:00 AM - 6:00 PM",address:locale==="ar"?"القاهرة · مصر":"Cairo · Egypt",menuImage:siteMedia.detail,menuImageAlt:"Warm architectural interior",socials:[{label:"Instagram",url:"https://instagram.com"},{label:"LinkedIn",url:"https://linkedin.com"},{label:"Facebook",url:"https://facebook.com"}],seoTitle:"Image Developments — Places with perspective",seoDescription:"Image Developments creates considered communities across Egypt."},common:{...base.common,statsHeading:locale==="ar"?"إيمدج بالأرقام":"Image in numbers"}};
   }
-  const [home, settings, nav, projects, openingProjects, news, pageSections] = await Promise.all([
+  const [home, settings, nav, projects, openingProjects, news, pageSections, allPublishedNews] = await Promise.all([
     prisma.homepage.findUnique({ where: { id: "homepage" }, include: { stats: { orderBy: { sortOrder: "asc" } }, aboutMilestones: { orderBy: { sortOrder: "asc" } } } }),
     prisma.globalSettings.findUnique({ where: { id: "global" }, include: { socialLinks: { orderBy: { sortOrder: "asc" } } } }),
     prisma.navigationItem.findMany({ where: { visible: true }, orderBy: { sortOrder: "asc" } }),
@@ -64,12 +65,81 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
     prisma.project.findMany({ where: { status: "PUBLISHED" }, orderBy: [{ featured: "desc" }, { featuredOrder: "asc" }, { createdAt: "desc" }] }),
     prisma.newsArticle.findMany({ where: { status: "PUBLISHED", featured: true }, orderBy: [{ featuredOrder: "asc" }, { publicationDate: "desc" }], take: 3 }),
     prisma.pageSection.findMany({where:{visible:true},orderBy:{sortOrder:"asc"}}),
+    prisma.newsArticle.findMany({
+      where: {
+        status: "PUBLISHED",
+        publicationDate: { lte: new Date() },
+      },
+      orderBy: [{ publicationDate: "desc" }],
+      take: 40,
+    }),
   ]);
   if (!home || !settings) throw new Error("CMS is not seeded. Run `pnpm db:seed`.");
   const fmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const currentProject=projects[0];
   const currentGallery=currentProject?(()=>{try{const value=JSON.parse(currentProject.gallery);return Array.isArray(value)?value.filter((image):image is string=>typeof image==="string"&&Boolean(image.trim())).slice(0,4):[]}catch{return[]}})():[];
   const openingImages=currentProject?Array.from({length:5},(_,index)=>[...currentGallery,currentProject.coverImageUrl,...openingProjects.map(project=>project.coverImageUrl)][index%Math.max(1,currentGallery.length+1+openingProjects.length)]):[];
+
+  const journalMode = (home.statsJournalMode as "AUTO" | "MANUAL") || "AUTO";
+  const categoryFilter = home.statsJournalCategory || "ALL";
+  const maxArticles = Math.max(1, Math.min(6, home.statsJournalCount ?? 3));
+
+  let candidateArticles = allPublishedNews.filter(a => {
+    return locale === "ar" ? Boolean(a.titleAr?.trim()) : Boolean(a.titleEn?.trim());
+  });
+
+  if (categoryFilter !== "ALL" && journalMode === "AUTO") {
+    candidateArticles = candidateArticles.filter(a => a.category?.toUpperCase() === categoryFilter.toUpperCase());
+  }
+
+  let selectedArticles = candidateArticles;
+  if (journalMode === "MANUAL") {
+    let manualIds: string[] = [];
+    try {
+      manualIds = JSON.parse(home.statsJournalArticleIds || "[]");
+    } catch {
+      manualIds = [];
+    }
+    if (manualIds.length > 0) {
+      const articleMap = new Map(candidateArticles.map(a => [a.id, a]));
+      const ordered = manualIds
+        .map(id => articleMap.get(id))
+        .filter((a): a is typeof candidateArticles[0] => Boolean(a));
+      if (ordered.length > 0) {
+        selectedArticles = ordered;
+      }
+    }
+  }
+
+  const seenArticleIds = new Set<string>();
+  const deduplicatedArticles = selectedArticles.filter(a => {
+    if (seenArticleIds.has(a.id)) return false;
+    seenArticleIds.add(a.id);
+    return true;
+  }).slice(0, maxArticles);
+
+  const homeJournalArticles: HomeJournalArticle[] = deduplicatedArticles.map(a => {
+    const catKey = (a.category || "NEWS").toUpperCase();
+    const catObj = JOURNAL_CATEGORY_LABELS[catKey] || { en: a.category || "News", ar: a.category || "أخبار" };
+    const catLabel = locale === "ar" ? catObj.ar : catObj.en;
+    const title = pick(locale, a.titleEn, a.titleAr);
+    const excerpt = pick(locale, a.excerptEn || "", a.excerptAr || "") || undefined;
+    const coverImageAlt = pick(locale, a.coverImageAltEn || "", a.coverImageAltAr || "") || title;
+    return {
+      id: a.id,
+      slug: a.slug,
+      title,
+      excerpt,
+      coverImageUrl: a.coverImageUrl,
+      coverImageAlt,
+      focalPoint: a.focalPoint || "center",
+      publicationDate: fmt.format(a.publicationDate),
+      rawDate: a.publicationDate.toISOString(),
+      category: a.category,
+      categoryLabel: catLabel,
+      href: `/${locale}/journal/${a.slug}`,
+    };
+  });
   return {
     locale, dir: locale === "ar" ? "rtl" : "ltr",
     backgrounds: { opening:home.openingBackgroundRgb,hero:home.heroBackgroundRgb,about:home.aboutBackgroundRgb,projects:home.projectsBackgroundRgb,lifestyle:home.lifestyleBackgroundRgb,stats:home.statsBackgroundRgb,journal:home.journalBackgroundRgb,closing:home.closingBackgroundRgb,footer:home.footerBackgroundRgb },
@@ -113,7 +183,15 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
     inquiryProjects: openingProjects.map(p => ({ id:p.id, name:pick(locale,p.nameEn,p.nameAr) })),
     openingProjects: openingProjects.map(p => ({ name:pick(locale,p.nameEn,p.nameAr), location:pick(locale,p.locationEn,p.locationAr), image:p.coverImageUrl })),
     openingProject: currentProject ? { name:pick(locale,currentProject.nameEn,currentProject.nameAr), location:pick(locale,currentProject.locationEn,currentProject.locationAr), image:currentProject.coverImageUrl, images:openingImages } : undefined,
-    lifestyle: { enabled: home.lifestyleEnabled, eyebrow: pick(locale,home.lifestyleEyebrowEn,home.lifestyleEyebrowAr), title:pick(locale,home.lifestyleTitleEn,home.lifestyleTitleAr), image:home.lifestyleMediaUrl, alt:pick(locale,home.lifestyleMediaAltEn,home.lifestyleMediaAltAr), ctaLabel: locale === "ar" ? "اكتشف قصتنا" : "Discover Our Story", ctaUrl: `/${locale}/about` },
+    lifestyle: {
+      enabled: home.lifestyleEnabled,
+      eyebrow: pick(locale, home.lifestyleEyebrowEn, home.lifestyleEyebrowAr),
+      title: pick(locale, home.lifestyleTitleEn, home.lifestyleTitleAr),
+      image: home.lifestyleMediaUrl,
+      alt: pick(locale, home.lifestyleMediaAltEn, home.lifestyleMediaAltAr),
+      ctaLabel: pick(locale, (home as any).lifestyleCtaLabelEn ?? (locale === "ar" ? "اكتشف قصتنا" : "Discover Our Story"), (home as any).lifestyleCtaLabelAr ?? "اكتشف قصتنا") || (locale === "ar" ? "اكتشف قصتنا" : "Discover Our Story"),
+      ctaUrl: (home as any).lifestyleCtaUrl || `/${locale}/about`,
+    },
     stats: home.stats.filter(s => s.visible !== false).map(s => ({ value:pick(locale,s.valueEn,s.valueAr), label:pick(locale,s.labelEn,s.labelAr), unit:pick(locale,s.unitEn??"",s.unitAr??"") || undefined })),
     statsSection: {
       enabled: home.statsEnabled,
@@ -134,15 +212,35 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
         sortOrder: s.sortOrder,
       })),
     },
+    newsJournalSection: {
+      enabled: home.statsEnabled,
+      label: pick(locale, home.statsLabelEn ?? "News & Journal", home.statsLabelAr ?? "الأخبار والمقالات") || (locale === "ar" ? "الأخبار والمقالات" : "News & Journal"),
+      heading: pick(locale, home.statsHeadingEn ?? "Stories, ideas, and updates.", home.statsHeadingAr ?? "قصص وأفكار ومستجدات") || (locale === "ar" ? "قصص وأفكار ومستجدات" : "Stories, ideas, and updates."),
+      description: pick(locale, home.statsDescriptionEn ?? "", home.statsDescriptionAr ?? "") || undefined,
+      ctaLabel: pick(locale, home.statsCtaLabelEn ?? (locale === "ar" ? "عرض جميع المقالات" : "View All Articles"), home.statsCtaLabelAr ?? "عرض جميع المقالات") || (locale === "ar" ? "عرض جميع المقالات" : "View All Articles"),
+      ctaUrl: home.statsCtaUrl || `/${locale}/journal`,
+      mode: journalMode,
+      categoryFilter,
+      articlesCount: maxArticles,
+      articles: homeJournalArticles,
+    },
     journal: { enabled: home.journalEnabled, eyebrow: pick(locale, home.journalEyebrowEn, home.journalEyebrowAr), title: pick(locale, home.journalTitleEn, home.journalTitleAr), stories: news.map(n => ({ slug: n.slug, date: fmt.format(n.publicationDate), title: pick(locale, n.titleEn, n.titleAr), image: n.coverImageUrl, alt: pick(locale, n.coverImageAltEn, n.coverImageAltAr) })) },
     closing: {
       enabled: home.closingEnabled,
       eyebrow: pick(locale, home.closingEyebrowEn, home.closingEyebrowAr),
       title: pick(locale, home.closingTitleEn, home.closingTitleAr),
-      description: pick(locale, home.closingDescriptionEn ?? "", home.closingDescriptionAr ?? "") || content[locale].closing.description,
-      formHeading: pick(locale, home.closingFormHeadingEn ?? "", home.closingFormHeadingAr ?? "") || content[locale].closing.formHeading,
-      submitLabel: pick(locale, home.closingSubmitLabelEn ?? "", home.closingSubmitLabelAr ?? "") || content[locale].closing.submitLabel,
-      successMessage: pick(locale, home.closingSuccessMessageEn ?? "", home.closingSuccessMessageAr ?? "") || content[locale].closing.successMessage,
+      description: (locale === "ar" ? home.closingDescriptionAr : home.closingDescriptionEn) !== null && (locale === "ar" ? home.closingDescriptionAr : home.closingDescriptionEn) !== undefined
+        ? (locale === "ar" ? home.closingDescriptionAr! : home.closingDescriptionEn!)
+        : content[locale].closing.description,
+      formHeading: (locale === "ar" ? home.closingFormHeadingAr : home.closingFormHeadingEn) !== null && (locale === "ar" ? home.closingFormHeadingAr : home.closingFormHeadingEn) !== undefined
+        ? (locale === "ar" ? home.closingFormHeadingAr! : home.closingFormHeadingEn!)
+        : content[locale].closing.formHeading,
+      submitLabel: (locale === "ar" ? home.closingSubmitLabelAr : home.closingSubmitLabelEn) !== null && (locale === "ar" ? home.closingSubmitLabelAr : home.closingSubmitLabelEn) !== undefined
+        ? (locale === "ar" ? home.closingSubmitLabelAr! : home.closingSubmitLabelEn!)
+        : content[locale].closing.submitLabel,
+      successMessage: (locale === "ar" ? home.closingSuccessMessageAr : home.closingSuccessMessageEn) !== null && (locale === "ar" ? home.closingSuccessMessageAr : home.closingSuccessMessageEn) !== undefined
+        ? (locale === "ar" ? home.closingSuccessMessageAr! : home.closingSuccessMessageEn!)
+        : content[locale].closing.successMessage,
       cta: pick(locale, home.closingCtaEn, home.closingCtaAr),
       url: home.closingCtaUrl,
     },
@@ -251,11 +349,11 @@ export const getProjectsPageContent = cache(async (locale: Locale): Promise<Proj
   };
 });
 
-export const getProjectDetailContent = cache(async (locale: Locale, slug: string): Promise<ProjectDetailPageContent | null> => {
+export const getProjectDetailContent = cache(async (locale: Locale, slug: string, isPreview = false): Promise<ProjectDetailPageContent | null> => {
   const base = await getHomepageContent(locale);
   if (!process.env.DATABASE_URL) return null;
   const project = await prisma.project.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: { slug, ...(isPreview ? {} : { status: "PUBLISHED" }) },
   });
   if (!project) return null;
 
@@ -336,6 +434,7 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
       seoTitle: pick(locale, project.seoTitleEn ?? `${project.nameEn} — Image Developments`, project.seoTitleAr ?? `${project.nameAr} — إيمدج للتطوير العقاري`),
       seoDescription: pick(locale, project.seoDescriptionEn ?? project.shortDescriptionEn, project.seoDescriptionAr ?? project.shortDescriptionAr),
       ogImageUrl: project.ogImageUrl ?? project.coverImageUrl,
+      status: project.status,
     },
     otherProjects: otherPublished.map((op) => ({
       id: op.id,
