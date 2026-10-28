@@ -1,0 +1,10 @@
+ALTER TABLE "Homepage" ADD COLUMN "openingEnabled" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Homepage" ADD COLUMN "openingHeadlineEn" TEXT NOT NULL DEFAULT 'A new perspective';
+ALTER TABLE "Homepage" ADD COLUMN "openingHeadlineAr" TEXT NOT NULL DEFAULT 'منظور جديد';
+ALTER TABLE "Homepage" ADD COLUMN "openingVideoDesktopUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "openingVideoMobileUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "openingPosterUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "heroVideoDesktopUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "heroVideoMobileUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "heroMobileMediaUrl" TEXT;
+ALTER TABLE "Homepage" ADD COLUMN "heroPosterUrl" TEXT;

@@ -1,0 +1,675 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model AdminUser {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  sessions     AdminSession[]
+}
+
+model AdminSession {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Homepage {
+  id                     String              @id @default("homepage")
+  openingBackgroundRgb   String              @default("255, 255, 255")
+  openingEnabled         Boolean             @default(true)
+  openingHeadlineEn      String              @default("A new perspective")
+  openingHeadlineAr      String              @default("منظور جديد")
+  openingVideoDesktopUrl String?
+  openingVideoMobileUrl  String?
+  openingPosterUrl       String?
+  heroEnabled            Boolean             @default(true)
+  heroBackgroundRgb      String              @default("255, 255, 255")
+  heroEyebrowEn          String
+  heroEyebrowAr          String
+  heroTitleEn            String
+  heroTitleAr            String
+  heroNoteEn             String
+  heroNoteAr             String
+  heroDiscoverEn         String
+  heroDiscoverAr         String
+  heroMediaUrl           String
+  heroVideoDesktopUrl    String?
+  heroVideoMobileUrl     String?
+  heroMobileMediaUrl     String?
+  heroPosterUrl          String?
+  heroMediaAltEn         String
+  heroMediaAltAr         String
+  aboutEnabled           Boolean             @default(true)
+  aboutBackgroundRgb     String              @default("255, 255, 255")
+  aboutEyebrowEn         String              @default("Our journey")
+  aboutEyebrowAr         String              @default("رحلتنا")
+  aboutTitleEn           String              @default("A timeline of places, people and progress.")
+  aboutTitleAr           String              @default("مسيرة من الأماكن والناس والتقدم.")
+  aboutIntroEn           String              @default("From our first idea to the communities taking shape today, every chapter adds a new perspective.")
+  aboutIntroAr           String              @default("من فكرتنا الأولى إلى المجتمعات التي تتشكل اليوم، يضيف كل فصل منظوراً جديداً.")
+  aboutHeroEnabled       Boolean             @default(true)
+  aboutHeroEyebrowEn     String              @default("About Image")
+  aboutHeroEyebrowAr     String              @default("عن إيمدج")
+  aboutHeroTitleEn       String              @default("We shape places around the lives they hold.")
+  aboutHeroTitleAr       String              @default("نصنع أماكن تتمحور حول الحياة التي تحتضنها.")
+  aboutHeroBodyEn        String              @default("Image Developments creates considered communities where architecture, landscape and everyday experience belong together.")
+  aboutHeroBodyAr        String              @default("تصنع إيمدج للتطوير العقاري مجتمعات مدروسة تتكامل فيها العمارة والطبيعة وتجربة الحياة اليومية.")
+  aboutHeroImageUrl      String?
+  aboutHeroImageAltEn    String              @default("Image Developments community")
+  aboutHeroImageAltAr    String              @default("أحد مجتمعات إيمدج للتطوير العقاري")
+  projectsEnabled        Boolean             @default(true)
+  projectsBackgroundRgb  String              @default("255, 255, 255")
+  projectsHeadingEn      String
+  projectsHeadingAr      String
+  projectsDescriptionEn  String?             @default("A curated collection of residential and mixed-use destinations shaping Egypt's urban landscape.")
+  projectsDescriptionAr  String?             @default("مجموعة مختارة من الوجهات السكنية والمختلطة التي تصنع ملامح جديدة للحياة الحضرية في مصر.")
+  projectsExploreEn      String
+  projectsExploreAr      String
+  projectsEnquireEn      String              @default("Enquire")
+  projectsEnquireAr      String              @default("استفسر الآن")
+  projectsViewAllEn      String              @default("View All Projects")
+  projectsViewAllAr      String              @default("جميع المشاريع")
+  projectsSpacing        String              @default("standard")
+  projectsTheme          String              @default("light")
+  projectsImagePosition  String              @default("start")
+
+  projectsHeroEnabled        Boolean             @default(true)
+  projectsHeroEyebrowEn      String              @default("Image Portfolio")
+  projectsHeroEyebrowAr      String              @default("محفظة المشاريع")
+  projectsHeroTitleEn        String              @default("Our Projects")
+  projectsHeroTitleAr        String              @default("مشاريعنا")
+  projectsHeroDescriptionEn  String              @default("Explore our collection of considered destinations and master-planned communities, where architectural craft meets landscape and everyday living.")
+  projectsHeroDescriptionAr  String              @default("استكشف وجهات ومجتمعات إيمدج للتطوير العقاري، حيث تتناغم العمارة الحديثة مع الطبيعة وتفاصيل الحياة اليومية لصنع قيمة مستدامة.")
+  projectsHeroImageUrl       String?
+  projectsHeroMobileImageUrl String?
+  projectsHeroFocalPoint     String              @default("center")
+  projectsHeroImageAltEn     String              @default("Image Developments Projects")
+  projectsHeroImageAltAr     String              @default("مشاريع إيمدج للتطوير العقاري")
+  projectsHeroPrimaryCtaEn   String              @default("Explore Projects")
+  projectsHeroPrimaryCtaAr   String              @default("استكشف المشاريع")
+  projectsHeroSecondaryCtaEn String              @default("Register Interest")
+  projectsHeroSecondaryCtaAr String              @default("سجّل اهتمامك")
+  projectsOpeningEnabled     Boolean             @default(true)
+  projectsOpeningHeadlineEn  String              @default("Our Portfolio")
+  projectsOpeningHeadlineAr  String              @default("محفظة المشاريع")
+  lifestyleEnabled       Boolean             @default(true)
+  lifestyleBackgroundRgb String              @default("255, 255, 255")
+  lifestyleEyebrowEn     String
+  lifestyleEyebrowAr     String
+  lifestyleTitleEn       String
+  lifestyleTitleAr       String
+  lifestyleMediaUrl      String
+  lifestyleMediaAltEn    String
+  lifestyleMediaAltAr    String
+  statsEnabled           Boolean             @default(true)
+  statsBackgroundRgb     String              @default("255, 255, 255")
+  statsLabelEn           String?             @default("About Image")
+  statsLabelAr           String?             @default("عن إيمدج")
+  statsHeadingEn         String
+  statsHeadingAr         String
+  statsDescriptionEn     String?             @default("For nearly two decades, Image Developments has crafted thoughtful residential and mixed-use environments that balance architectural craft with the natural landscape.")
+  statsDescriptionAr     String?             @default("على مدار ما يقارب عقدين من الزمان، تبتكر إيمدج للتطوير العقاري بيئات سكنية ومختلطة متكاملة تجمع بين الحرفية المعمارية وجمال الطبيعة.")
+  statsImageUrl          String?             @default("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2200&q=88")
+  statsImageAltEn        String?             @default("Architectural craft at Image Developments")
+  statsImageAltAr        String?             @default("الحرفية المعمارية في إيمدج للتطوير العقاري")
+  statsImageFocalPoint   String              @default("center")
+  statsCtaLabelEn        String?             @default("Discover Our Story")
+  statsCtaLabelAr        String?             @default("اكتشف قصتنا")
+  statsCtaUrl            String?             @default("/about")
+  journalEnabled         Boolean             @default(true)
+  journalBackgroundRgb   String              @default("255, 255, 255")
+  journalEyebrowEn       String
+  journalEyebrowAr       String
+  journalTitleEn         String
+  journalTitleAr         String
+  closingEnabled         Boolean             @default(true)
+  closingBackgroundRgb   String              @default("255, 255, 255")
+  closingEyebrowEn       String
+  closingEyebrowAr       String
+  closingTitleEn         String
+  closingTitleAr         String
+  closingDescriptionEn   String?             @default("Choose your project and leave your details. Our advisors will guide you through every step.")
+  closingDescriptionAr   String?             @default("اختر مشروعك واترك بياناتك، وسيتواصل معك مستشارونا لمساعدتك في كل خطوة.")
+  closingFormHeadingEn   String?             @default("Send us an enquiry")
+  closingFormHeadingAr   String?             @default("أرسل لنا استفسارك")
+  closingSubmitLabelEn   String?             @default("Send Enquiry")
+  closingSubmitLabelAr   String?             @default("إرسال الاستفسار")
+  closingSuccessMessageEn String?            @default("Thank you, your enquiry has been received. Our specialized team will be in touch shortly.")
+  closingSuccessMessageAr String?            @default("شكراً لك، تم استلام استفسارك بنجاح. سيتواصل معك فريقنا المختص قريباً.")
+  closingCtaEn           String
+  closingCtaAr           String
+  closingCtaUrl          String
+  footerBackgroundRgb    String              @default("255, 255, 255")
+  sectionOrder           String              @default("[\"projects\",\"lifestyle\",\"stats\",\"journal\",\"closing\"]")
+  updatedAt              DateTime            @updatedAt
+  stats                  Stat[]
+  aboutMilestones        AboutMilestone[]
+  aboutContentBlocks     AboutContentBlock[]
+  teamEyebrowEn          String              @default("The people behind Image")
+  teamEyebrowAr          String              @default("الفريق وراء إيمدج")
+  teamTitleEn            String              @default("Different perspectives. One shared vision.")
+  teamTitleAr            String              @default("منظورات مختلفة. رؤية واحدة.")
+  teamIntroEn            String              @default("Meet the people shaping thoughtful places for how Egypt lives next.")
+  teamIntroAr            String              @default("تعرف على الأشخاص الذين يصنعون أماكن مدروسة لمستقبل الحياة في مصر.")
+  teamMembers            TeamMember[]
+  partnersEyebrowEn      String              @default("Our partners")
+  partnersEyebrowAr      String              @default("شركاؤنا")
+  partnersTitleEn        String              @default("Built together. Made to last.")
+  partnersTitleAr        String              @default("نبني معاً. لنصنع أثراً يدوم.")
+  partnersIntroEn        String              @default("We collaborate with leading minds across design, construction and hospitality to create places with lasting value.")
+  partnersIntroAr        String              @default("نتعاون مع نخبة من الخبراء في التصميم والإنشاء والضيافة لنصنع أماكن ذات قيمة دائمة.")
+  partners               Partner[]
+  careersHeroEyebrowEn   String              @default("Careers at Image")
+  careersHeroEyebrowAr   String              @default("انضم إلى فريقنا")
+  careersHeroTitleEn     String              @default("Shape places that shape tomorrow.")
+  careersHeroTitleAr     String              @default("اصنع مستقبلاً يحمل بصمتك.")
+  careersHeroIntroEn     String              @default("At Image Developments, we bring together passionate professionals across architecture, engineering, and development to create places with lasting value.")
+  careersHeroIntroAr     String              @default("في إيمدج للتطوير العقاري، نبحث دائماً عن العقول المبدعة والمهارات المتفردة لنبني معاً مجتمعات استثنائية.")
+  careersHeroImageUrl    String?
+  careersLifeEyebrowEn   String              @default("Life at Image")
+  careersLifeEyebrowAr   String              @default("الحياة في إيمدج")
+  careersLifeTitleEn     String              @default("An inspiring culture built on craft, collaboration, and growth.")
+  careersLifeTitleAr     String              @default("بيئة عمل ملهمة ترتكز على التعاون والإتقان.")
+  careersLifeBodyEn      String              @default("We cultivate a collaborative environment where diverse perspectives drive innovation. We empower our team members with meaningful challenges and continuous professional development.")
+  careersLifeBodyAr      String              @default("نؤمن بأن الابتكار الحقيقي ينبع من بيئة تقدّر الأفكار وتدعم التطوير المهني المستمر. نلتزم بتوفير مساحة محفزة للإبداع والنمو.")
+  careersLifeImages      String              @default("[]")
+}
+
+model Partner {
+  id            String   @id @default(cuid())
+  nameEn        String
+  nameAr        String
+  descriptionEn String?
+  descriptionAr String?
+  logoUrl       String
+  logoAltEn     String
+  logoAltAr     String
+  websiteUrl    String?
+  visible       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  homepageId    String
+  homepage      Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+model TeamMember {
+  id         String   @id @default(cuid())
+  nameEn     String
+  nameAr     String
+  roleEn     String
+  roleAr     String
+  bioEn      String
+  bioAr      String
+  imageUrl   String
+  imageAltEn String
+  imageAltAr String
+  visible    Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  homepageId String
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+model AboutContentBlock {
+  id         String   @id @default(cuid())
+  enabled    Boolean  @default(true)
+  eyebrowEn  String
+  eyebrowAr  String
+  titleEn    String
+  titleAr    String
+  bodyEn     String
+  bodyAr     String
+  imageUrl   String?
+  imageAltEn String?
+  imageAltAr String?
+  sortOrder  Int      @default(0)
+  homepageId String
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId, sortOrder])
+}
+
+model AboutMilestone {
+  id         String   @id @default(cuid())
+  year       String
+  titleEn    String
+  titleAr    String
+  bodyEn     String
+  bodyAr     String
+  imageUrl   String
+  imageAltEn String
+  imageAltAr String
+  sortOrder  Int      @default(0)
+  homepageId String
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+}
+
+model Stat {
+  id         String   @id @default(cuid())
+  valueEn    String
+  valueAr    String
+  unitEn     String?
+  unitAr     String?
+  labelEn    String
+  labelAr    String
+  visible    Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  homepageId String
+  homepage   Homepage @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id                  String        @id @default(cuid())
+  slug                String        @unique
+  nameEn              String
+  nameAr              String
+  shortDescriptionEn  String
+  shortDescriptionAr  String
+  fullDescriptionEn   String?
+  fullDescriptionAr   String?
+  locationEn          String
+  locationAr          String
+  coverImageUrl       String
+  coverImageAltEn     String
+  coverImageAltAr     String
+  coverImageFocalPoint String       @default("center")
+  gallery             String        @default("[]")
+  logoUrl             String?
+  ctaLabelEn          String?
+  ctaLabelAr          String?
+  ctaUrl              String?
+  status              ContentStatus @default(DRAFT)
+  featured            Boolean       @default(false)
+  featuredOrder       Int           @default(0)
+  projectType         String        @default("Residential") // Residential | Commercial | Medical
+  progressStatus      String        @default("Ongoing")     // Ongoing | Delivered | Upcoming
+  masterPlanUrl       String?
+  brochureUrl         String?
+  videoTourUrl        String?
+  latitude            Float?
+  longitude           Float?
+  mapUrl              String?
+  keyFacts            String        @default("[]")
+  highlights          String        @default("[]")
+  unitTypes           String        @default("[]")
+  nearbyLocations     String        @default("[]")
+  constructionUpdates String        @default("[]")
+  seoTitleEn          String?
+  seoTitleAr          String?
+  seoDescriptionEn    String?
+  seoDescriptionAr    String?
+  ogImageUrl          String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model NewsArticle {
+  id                String        @id @default(cuid())
+  slug              String        @unique
+  titleEn           String
+  titleAr           String
+  excerptEn         String
+  excerptAr         String
+  contentEn         String
+  contentAr         String
+  coverImageUrl     String
+  coverImageAltEn   String
+  coverImageAltAr   String
+  publicationDate   DateTime
+  status            ContentStatus @default(DRAFT)
+  featured          Boolean       @default(false)
+  featuredOrder     Int           @default(0)
+  category          String        @default("NEWS") // NEWS | EVENTS | CONSTRUCTION
+  projectId         String?
+  authorEn          String?
+  authorAr          String?
+  focalPoint        String?       @default("center")
+  tags              String?       @default("[]")
+  relatedArticleIds String?       @default("[]")
+  seoTitleEn        String?
+  seoTitleAr        String?
+  seoDescriptionEn  String?
+  seoDescriptionAr  String?
+  ogImageUrl        String?
+  coverCaptionEn    String?
+  coverCaptionAr    String?
+  coverCreditEn     String?
+  coverCreditAr     String?
+  constructionDate  DateTime?
+  showRelatedProject Boolean      @default(true)
+  showTableOfContents Boolean     @default(false)
+  ctaEnabled        Boolean       @default(false)
+  ctaHeadingEn      String?
+  ctaHeadingAr      String?
+  ctaTextEn         String?
+  ctaTextAr         String?
+  ctaButtonEn       String?
+  ctaButtonAr       String?
+  ctaLink           String?
+  ctaActionType     String?       @default("ENQUIRY") // ENQUIRY | LINK
+  gallery           String?       @default("[]")
+  videoUrl          String?
+  sidebarProjectsEnabled   Boolean       @default(true)
+  sidebarProjectsHeadingEn String?
+  sidebarProjectsHeadingAr String?
+  sidebarProjectsMode      String?       @default("AUTO") // AUTO | MANUAL
+  sidebarProjectIds        String?       @default("[]")
+  sidebarProjectsCount     Int?          @default(3)
+  sidebarShowLocation      Boolean       @default(true)
+  sidebarShowType          Boolean       @default(true)
+  sidebarShowStatus        Boolean       @default(true)
+  sidebarViewAllLabelEn    String?
+  sidebarViewAllLabelAr    String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model ArticleRedirect {
+  id         String   @id @default(cuid())
+  sourceSlug String   @unique
+  targetSlug String
+  createdAt  DateTime @default(now())
+}
+
+model JournalPageSettings {
+  id                  String   @id @default("journal")
+  titleEn             String   @default("Journal")
+  titleAr             String   @default("يوميات إيمدج")
+  introEn             String   @default("Follow milestones, architecture, events, and construction progress across Image destinations.")
+  introAr             String   @default("تابع أحدث المستجدات، الفعاليات وتطورات البناء في مجتمعات إيمدج للتطوير العقاري.")
+  heroImageUrl        String?
+  heroImageAltEn      String?  @default("Image Developments Journal")
+  heroImageAltAr      String?  @default("يوميات إيمدج للتطوير العقاري")
+  heroFocalPoint      String?  @default("center")
+  featuredArticleId   String?
+  categoryOrder       String   @default("ALL,NEWS,EVENTS,CONSTRUCTION")
+  sidebarEnabled      Boolean  @default(true)
+  sidebarHeadingEn    String   @default("Recent Articles")
+  sidebarHeadingAr    String   @default("أحدث المقالات")
+  sidebarMode         String   @default("AUTO") // AUTO | MANUAL
+  sidebarArticleIds   String   @default("[]")
+  sidebarItemCount    Int      @default(5)
+  articlesPerPage     Int      @default(6)
+  closingCtaEnabled   Boolean  @default(true)
+  closingCtaHeadingEn String   @default("Discover Our Living Communities")
+  closingCtaHeadingAr String   @default("اكتشف مجتمعاتنا السكنية")
+  closingCtaTextEn    String   @default("Explore our master-planned destinations across Egypt or speak with our property advisors.")
+  closingCtaTextAr    String   @default("استكشف وجهاتنا المطورة بعناية في مصر أو تواصل مع مستشارينا العقاريين.")
+  closingCtaButtonEn  String   @default("Explore Our Projects")
+  closingCtaButtonAr  String   @default("استكشف مشاريعنا")
+  closingCtaLink      String   @default("/projects")
+  closingCtaSecondary Boolean  @default(true)
+  seoTitleEn          String   @default("Journal & Latest News — Image Developments")
+  seoTitleAr          String   @default("اليوميات وآخر الأخبار — إيمدج للتطوير العقاري")
+  seoDescriptionEn    String   @default("Discover the latest architectural milestones, stories, events, and construction updates from Image Developments.")
+  seoDescriptionAr    String   @default("اطلع على أحدث المقالات والأخبار وتحديثات البناء من إيمدج للتطوير العقاري.")
+  ogImageUrl          String?
+  updatedAt           DateTime @default(now()) @updatedAt
+}
+
+model NavigationItem {
+  id                String  @id @default(cuid())
+  labelEn           String
+  labelAr           String
+  url               String
+  visible           Boolean @default(true)
+  external          Boolean @default(false)
+  sortOrder         Int     @default(0)
+  group             String  @default("primary")
+  previewImageUrl   String?
+  previewImageUrlAr String?
+  focalPoint        String  @default("center")
+}
+
+model GlobalSettings {
+  id                      String       @id @default("global")
+  siteNameEn              String
+  siteNameAr              String
+  contactEmail            String
+  phone                   String
+  hotline                 String       @default("17087")
+  companyBrochureUrl      String?
+  workingHoursEn          String       @default("Sunday - Thursday: 9:00 AM - 6:00 PM")
+  workingHoursAr          String       @default("الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م")
+  addressEn               String
+  addressAr               String
+  instagramUrl            String?
+  linkedinUrl             String?
+  facebookUrl             String?
+  socialLinks             SocialLink[]
+  copyrightEn             String
+  copyrightAr             String
+  defaultSeoTitleEn       String
+  defaultSeoTitleAr       String
+  defaultSeoDescriptionEn String
+  defaultSeoDescriptionAr String
+  defaultOgImageUrl       String?
+  menuMediaUrl            String
+  menuMediaAltEn          String
+  menuMediaAltAr          String
+  menuMediaFocalPoint     String       @default("center")
+  descriptionEn           String?
+  descriptionAr           String?
+  mapUrl                  String?
+  footerExploreHeadingEn  String?      @default("Explore")
+  footerExploreHeadingAr  String?      @default("استكشف")
+  footerProjectsHeadingEn String?      @default("Our Projects")
+  footerProjectsHeadingAr String?      @default("مشاريعنا")
+  footerContactHeadingEn  String?      @default("Contact")
+  footerContactHeadingAr  String?      @default("تواصل معنا")
+  callbackEnabled         Boolean      @default(true)
+  callbackLabelEn         String?      @default("Request a Call Back")
+  callbackLabelAr         String?      @default("طلب معاودة الاتصال")
+  updatedAt               DateTime     @updatedAt
+}
+
+model CareerJob {
+  id             String              @id @default(cuid())
+  slug           String              @unique
+  titleEn        String
+  titleAr        String
+  departmentEn   String
+  departmentAr   String
+  locationEn     String              @default("Cairo, Egypt")
+  locationAr     String              @default("القاهرة، مصر")
+  descriptionEn  String
+  descriptionAr  String
+  requirementsEn String
+  requirementsAr String
+  status         ContentStatus       @default(PUBLISHED)
+  sortOrder      Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  applications   CareerApplication[]
+
+  @@index([status, sortOrder])
+}
+
+model CareerApplication {
+  id         String     @id @default(cuid())
+  jobId      String?
+  job        CareerJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  jobTitle   String
+  fullName   String
+  email      String
+  phone      String
+  cvUrl      String
+  cvFilename String
+  notes      String?
+  status     String     @default("NEW") // NEW | REVIEWED | SHORTLISTED | REJECTED
+  createdAt  DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model SocialLink {
+  id               String         @id @default(cuid())
+  name             String
+  url              String
+  svgIcon          String
+  sortOrder        Int            @default(0)
+  globalSettingsId String         @default("global")
+  globalSettings   GlobalSettings @relation(fields: [globalSettingsId], references: [id], onDelete: Cascade)
+
+  @@index([globalSettingsId, sortOrder])
+}
+
+model MediaAsset {
+  id        String    @id @default(cuid())
+  url       String    @unique
+  filename  String
+  mimeType  String
+  size      Int
+  kind      MediaKind @default(IMAGE)
+  altEn     String?
+  altAr     String?
+  createdAt DateTime  @default(now())
+}
+
+model TypographySetting {
+  key       String   @id
+  fontSize  Int
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model PolicyPage {
+  id            String           @id @default("policypage")
+  heroEyebrowEn String           @default("Legal")
+  heroEyebrowAr String           @default("قانوني")
+  heroTitleEn   String           @default("Our commitments to you.")
+  heroTitleAr   String           @default("التزاماتنا تجاهك.")
+  heroBodyEn    String           @default("Read our policies to understand how we operate and protect your rights as a visitor and client.")
+  heroBodyAr    String           @default("اقرأ سياساتنا لتفهم كيف نعمل ونحمي حقوقك كزائر وعميل.")
+  updatedAt     DateTime         @default(now()) @updatedAt
+  documents     PolicyDocument[]
+}
+
+model PolicyDocument {
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  titleEn      String
+  titleAr      String
+  summaryEn    String     @default("")
+  summaryAr    String     @default("")
+  contentEn    String
+  contentAr    String
+  visible      Boolean    @default(true)
+  sortOrder    Int        @default(0)
+  updatedAt    DateTime   @default(now()) @updatedAt
+  policyPageId String     @default("policypage")
+  policyPage   PolicyPage @relation(fields: [policyPageId], references: [id], onDelete: Cascade)
+
+  @@index([policyPageId, sortOrder])
+}
+
+model TermsPage {
+  id            String          @id @default("termspage")
+  heroEyebrowEn String          @default("Terms")
+  heroEyebrowAr String          @default("الشروط")
+  heroTitleEn   String          @default("Terms of use")
+  heroTitleAr   String          @default("شروط الاستخدام")
+  heroBodyEn    String          @default("Please review the terms that apply when using our website and services.")
+  heroBodyAr    String          @default("يرجى مراجعة الشروط التي تنطبق عند استخدام موقعنا وخدماتنا.")
+  updatedAt     DateTime        @default(now()) @updatedAt
+  sections      TermsSection[]
+}
+
+model TermsSection {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  titleEn     String
+  titleAr     String
+  contentEn   String
+  contentAr   String
+  visible     Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  updatedAt   DateTime  @default(now()) @updatedAt
+  termsPageId String    @default("termspage")
+  termsPage   TermsPage @relation(fields: [termsPageId], references: [id], onDelete: Cascade)
+
+  @@index([termsPageId, sortOrder])
+}
+
+model ContactPage {
+  id            String   @id @default("contactpage")
+  heroEyebrowEn String   @default("Contact us")
+  heroEyebrowAr String   @default("تواصل معنا")
+  heroTitleEn   String   @default("Start a conversation.")
+  heroTitleAr   String   @default("ابدأ حواراً معنا.")
+  heroBodyEn    String   @default("Tell us how we can help and our team will get back to you.")
+  heroBodyAr    String   @default("أخبرنا كيف يمكننا مساعدتك وسيتواصل معك فريقنا.")
+  updatedAt     DateTime @default(now()) @updatedAt
+}
+
+model ContactSubmission {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  countryCode String?
+  subject     String
+  projectId   String?
+  status      String   @default("NEW")
+  notes       String?
+  message     String
+  locale      String   @default("en")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+/// Ordered page-builder blocks: custom content sections and positioned built-in sections.
+model PageSection {
+  id            String   @id @default(cuid())
+  page          String
+  /// CUSTOM, or a built-in block key from src/lib/page-blocks.ts
+  kind          String   @default("CUSTOM")
+  layout        String   @default("TEXT")
+  eyebrowEn     String   @default("")
+  eyebrowAr     String   @default("")
+  titleEn       String
+  titleAr       String
+  bodyEn        String   @default("")
+  bodyAr        String   @default("")
+  imageUrl      String?
+  imageAltEn    String   @default("")
+  imageAltAr    String   @default("")
+  ctaLabelEn    String   @default("")
+  ctaLabelAr    String   @default("")
+  ctaUrl        String?
+  backgroundRgb String   @default("255, 255, 255")
+  /// JSON style settings, see src/lib/block-settings.ts
+  settings      String   @default("{}")
+  visible       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([page, visible, sortOrder])
+}

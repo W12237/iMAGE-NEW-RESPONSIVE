@@ -1,0 +1,18 @@
+node_modules
+.next
+.pnpm-store
+*.tsbuildinfo
+# .env*
+# !.env.example
+*.log
+.DS_Store
+src/content/mock/cms-storage.json
+node_modules/
+.next/
+out/
+dist/
+.env
+.env.*
+!.env.example
+*.pem
+*.key

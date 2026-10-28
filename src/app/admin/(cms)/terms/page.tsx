@@ -1,0 +1,6 @@
+import { prisma } from "@/lib/prisma";
+import { ActionForm } from "@/components/admin/action-form";
+import { Bilingual } from "@/components/admin/fields";
+import { TermsSectionsEditor } from "@/components/admin/terms-sections-editor";
+import { saveTerms } from "../../actions";
+export default async function TermsAdmin(){const terms=await prisma.termsPage.findUniqueOrThrow({where:{id:"termspage"},include:{sections:{orderBy:{sortOrder:"asc"}}}});return <><header className="page-head"><div><p>Standalone page</p><h1>Terms page</h1><span>Manage the bilingual legal introduction and structured clauses.</span></div></header><ActionForm action={saveTerms} className="admin-form" submitLabel="Save Terms Page"><section className="panel"><h2>Page introduction</h2><Bilingual base="termsEyebrow" label="Eyebrow" en={terms.heroEyebrowEn} ar={terms.heroEyebrowAr} required/><Bilingual base="termsPageTitle" label="Heading" en={terms.heroTitleEn} ar={terms.heroTitleAr} textarea required/><Bilingual base="termsIntro" label="Introduction" en={terms.heroBodyEn} ar={terms.heroBodyAr} textarea required/></section><TermsSectionsEditor initialSections={terms.sections.map(section=>({id:section.id,slug:section.slug,titleEn:section.titleEn,titleAr:section.titleAr,bodyEn:section.contentEn,bodyAr:section.contentAr,visible:section.visible}))}/></ActionForm></>}

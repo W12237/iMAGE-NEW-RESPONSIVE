@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background: Rich Egyptian Forest Emerald -->
+    <radialGradient id="bgGrad" cx="50%" cy="28%" r="82%">
+      <stop offset="0%" stop-color="#2a4936"/>
+      <stop offset="65%" stop-color="#182d20"/>
+      <stop offset="100%" stop-color="#112017"/>
+    </radialGradient>
+
+    <!-- Squircle Gold Rim -->
+    <linearGradient id="squircleRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8deb9" stop-opacity="0.65"/>
+      <stop offset="35%" stop-color="#f2b985" stop-opacity="0.25"/>
+      <stop offset="70%" stop-color="#e8a66d" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#f8deb9" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Arch: Luminous Alabaster / Warm Ivory -->
+    <linearGradient id="archFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="70%" stop-color="#FBF5ED"/>
+      <stop offset="100%" stop-color="#F3E7D7"/>
+    </linearGradient>
+    <linearGradient id="archStroke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff5ea"/>
+      <stop offset="100%" stop-color="#e5b182"/>
+    </linearGradient>
+
+    <!-- Sun: Radiant Luminous Sphere -->
+    <radialGradient id="sunGrad" cx="36%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#ffe6cb"/>
+      <stop offset="75%" stop-color="#f3b47b"/>
+      <stop offset="100%" stop-color="#dc8b46"/>
+    </radialGradient>
+
+    <!-- Left Facet: Architectural Bronze / Sandstone -->
+    <linearGradient id="facetLeftGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cca074"/>
+      <stop offset="100%" stop-color="#a46f43"/>
+    </linearGradient>
+
+    <!-- Right Facet: Sun-Drenched Peach Terracotta -->
+    <linearGradient id="facetRightGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde3c7"/>
+      <stop offset="55%" stop-color="#f4ba83"/>
+      <stop offset="100%" stop-color="#df914f"/>
+    </linearGradient>
+
+    <!-- Emblem Elevation Shadow -->
+    <filter id="emblemShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#060e09" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Ambient Center Light -->
+    <radialGradient id="ambientLight" cx="50%" cy="38%" r="45%">
+      <stop offset="0%" stop-color="#f2b985" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#f2b985" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Luxury Squircle Badge (iOS / macOS standard curvature) -->
+  <rect x="18" y="18" width="476" height="476" rx="114" ry="114" fill="url(#bgGrad)"/>
+  <rect x="18" y="18" width="476" height="476" rx="114" ry="114" fill="url(#ambientLight)"/>
+  <rect x="18" y="18" width="476" height="476" rx="114" ry="114" fill="none" stroke="url(#squircleRim)" stroke-width="3.5"/>
+
+  <!-- Brand Emblem (Optical Center: 256, 256) -->
+  <g transform="matrix(4.45 0 0 4.45 126.94999999999999 64.65)" filter="url(#emblemShadow)">
+    <!-- Arch / Portal -->
+    <path d="M10 29C10 13 18.5 2 29 2s19 11 19 27v22H10V29Z" fill="url(#archFill)" stroke="url(#archStroke)" stroke-width="1.2" stroke-linejoin="round"/>
+    
+    <!-- Rising Sun Sphere -->
+    <circle cx="29" cy="23" r="11" fill="url(#sunGrad)"/>
+    
+    <!-- Pyramid Diamond Base - Left Facet -->
+    <path d="m29 34 0 50L2 58l27-24Z" fill="url(#facetLeftGrad)"/>
+    
+    <!-- Pyramid Diamond Base - Right Facet -->
+    <path d="m29 34 27 24-27 26V34Z" fill="url(#facetRightGrad)"/>
+  </g>
+</svg>

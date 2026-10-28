@@ -1,0 +1,7 @@
+import { prisma } from "@/lib/prisma";
+import { ActionForm } from "@/components/admin/action-form";
+import { Bilingual } from "@/components/admin/fields";
+import { PolicySectionsEditor } from "@/components/admin/policy-sections-editor";
+import { savePolicy } from "../../actions";
+
+export default async function PolicyAdmin(){const policy=await prisma.policyPage.findUniqueOrThrow({where:{id:"policypage"},include:{documents:{orderBy:{sortOrder:"asc"}}}});return <><header className="page-head"><div><p>Standalone page</p><h1>Policy page</h1><span>Manage the bilingual introduction and policy documents.</span></div></header><ActionForm action={savePolicy} className="admin-form" submitLabel="Save Policy Page"><section className="panel"><h2>Page introduction</h2><Bilingual base="policyEyebrow" label="Eyebrow" en={policy.heroEyebrowEn} ar={policy.heroEyebrowAr} required/><Bilingual base="policyPageTitle" label="Heading" en={policy.heroTitleEn} ar={policy.heroTitleAr} textarea required/><Bilingual base="policyIntro" label="Introduction" en={policy.heroBodyEn} ar={policy.heroBodyAr} textarea required/></section><PolicySectionsEditor initialSections={policy.documents.map(document=>({id:document.id,slug:document.slug,titleEn:document.titleEn,titleAr:document.titleAr,bodyEn:document.contentEn,bodyAr:document.contentAr,summaryEn:document.summaryEn,summaryAr:document.summaryAr,visible:document.visible}))}/></ActionForm></>}

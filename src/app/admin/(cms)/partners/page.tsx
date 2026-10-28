@@ -1,0 +1,7 @@
+import { prisma } from "@/lib/prisma";
+import { ActionForm } from "@/components/admin/action-form";
+import { Bilingual } from "@/components/admin/fields";
+import { PartnersEditor } from "@/components/admin/partners-editor";
+import { savePartners } from "../../actions";
+
+export default async function PartnersAdmin(){const[home,partners,images]=await Promise.all([prisma.homepage.findUniqueOrThrow({where:{id:"homepage"}}),prisma.partner.findMany({where:{homepageId:"homepage"},orderBy:{sortOrder:"asc"}}),prisma.mediaAsset.findMany({where:{kind:"IMAGE"},orderBy:{createdAt:"desc"},select:{id:true,url:true,filename:true,mimeType:true,size:true,kind:true}})]);return <><header className="page-head"><div><p>Standalone page</p><h1>Partners page</h1><span>Manage the bilingual introduction, logos and partner links.</span></div></header><ActionForm action={savePartners} className="admin-form" submitLabel="Save Partners Page"><section className="panel"><h2>Page introduction</h2><Bilingual base="partnersEyebrow" label="Eyebrow" en={home.partnersEyebrowEn} ar={home.partnersEyebrowAr} required/><Bilingual base="partnersTitle" label="Heading" en={home.partnersTitleEn} ar={home.partnersTitleAr} textarea required/><Bilingual base="partnersIntro" label="Introduction" en={home.partnersIntroEn} ar={home.partnersIntroAr} textarea required/></section><PartnersEditor key={partners.map(p=>p.id).join(",")} initialPartners={partners} assets={images}/></ActionForm></>}

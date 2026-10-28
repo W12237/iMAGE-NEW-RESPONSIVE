@@ -1,0 +1,5 @@
+CREATE TABLE "TypographySetting" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "fontSize" INTEGER NOT NULL,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
