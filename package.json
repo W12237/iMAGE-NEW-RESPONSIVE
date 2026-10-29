@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
     "admin:create": "node scripts/create-admin.mjs"
   },
   "dependencies": {
