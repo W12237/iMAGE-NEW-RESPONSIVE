@@ -1,14 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { ProjectForm } from "@/components/admin/project-form";
+import { ProjectEditor } from "@/components/admin/project-editor";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [item, assets] = await Promise.all([
-    prisma.project.findUnique({ where: { id } }),
+    prisma.project.findUnique({
+      where: { id },
+      include: {
+        keyFactsList: { orderBy: { sortOrder: "asc" } },
+        highlightsList: { orderBy: { sortOrder: "asc" } },
+        unitTypesList: { orderBy: { sortOrder: "asc" } },
+        galleryItemList: { orderBy: { sortOrder: "asc" } },
+        constructionUpdatesList: { orderBy: { sortOrder: "asc" } },
+        connectivityList: { orderBy: { sortOrder: "asc" } },
+        visualTours: { orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }] },
+      },
+    }),
     prisma.mediaAsset.findMany({
       where: { kind: "IMAGE" },
       orderBy: { createdAt: "desc" },
@@ -53,7 +64,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           </Link>
         </div>
       </header>
-      <ProjectForm item={item} assets={assets} />
+      <ProjectEditor item={item} assets={assets} />
     </>
   );
 }

@@ -330,8 +330,160 @@ model Project {
   seoDescriptionEn    String?
   seoDescriptionAr    String?
   ogImageUrl          String?
+  projectCode         String?
+  addressEn           String?
+  addressAr           String?
+  directionsUrl       String?
+  mobileHeroImageUrl  String?
+  heroVideoUrl        String?
+  cardImageUrl        String?
+  heroTitleEn         String?
+  heroTitleAr         String?
+  heroDescriptionEn   String?
+  heroDescriptionAr   String?
+  publishedAt         DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+
+  keyFactsList            ProjectKeyFact[]
+  highlightsList          ProjectHighlight[]
+  unitTypesList           ProjectUnitType[]
+  galleryItemList         ProjectGalleryItem[]
+  constructionUpdatesList ProjectConstructionUpdate[]
+  connectivityList        ProjectConnectivity[]
+  visualTours             ProjectVisualTour[]
+}
+
+model ProjectKeyFact {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  labelEn   String
+  labelAr   String
+  valueEn   String
+  valueAr   String
+  unitEn    String?
+  unitAr    String?
+  icon      String?
+  sortOrder Int     @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectHighlight {
+  id            String  @id @default(cuid())
+  projectId     String
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  titleEn       String
+  titleAr       String
+  descriptionEn String
+  descriptionAr String
+  imageUrl      String?
+  icon          String?
+  sortOrder     Int     @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectUnitType {
+  id            String  @id @default(cuid())
+  projectId     String
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  titleEn       String
+  titleAr       String
+  areaEn        String?
+  areaAr        String?
+  areaRange     String?
+  areaUnit      String  @default("sqm")
+  finishingEn   String?
+  finishingAr   String?
+  descriptionEn String?
+  descriptionAr String?
+  paymentPlanEn String?
+  paymentPlanAr String?
+  imageUrl      String?
+  floorPlanUrl  String?
+  sortOrder     Int     @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectGalleryItem {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  category  String  @default("RENDERS") // RENDERS | CONSTRUCTION | INTERIOR | MASTER_PLAN
+  captionEn String?
+  captionAr String?
+  altEn     String?
+  altAr     String?
+  sortOrder Int     @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectConstructionUpdate {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date          DateTime @default(now())
+  titleEn       String
+  titleAr       String
+  descriptionEn String?
+  descriptionAr String?
+  imageUrl      String?
+  isVideo       Boolean  @default(false)
+  videoUrl      String?
+  sortOrder     Int      @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectConnectivity {
+  id                   String  @id @default(cuid())
+  projectId            String
+  project              Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  destinationEn        String
+  destinationAr        String
+  distanceOrDurationEn String
+  distanceOrDurationAr String
+  travelType           String  @default("CAR") // CAR | METRO | WALK
+  sortOrder            Int     @default(0)
+
+  @@index([projectId, sortOrder])
+}
+
+model ProjectVisualTour {
+  id               String        @id @default(cuid())
+  projectId        String
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  titleEn          String
+  titleAr          String
+  descriptionEn    String?
+  descriptionAr    String?
+  localeTarget     String        @default("ALL") // ALL | en | ar
+  sourceType       String        @default("ZIP") // HTML | ZIP
+  originalFilename String
+  storageKey       String?
+  extractedPrefix  String        // e.g. /tours/[id]
+  entryFilePath    String        @default("index.html")
+  assetVersion     String        @default("v1")
+  mimeType         String        @default("application/zip")
+  uploadedSize     Int           @default(0)
+  extractedSize    Int           @default(0)
+  assetCount       Int           @default(0)
+  posterUrl        String?
+  processingState  String        @default("READY") // UPLOADING | PROCESSING | READY | FAILED
+  publicationState ContentStatus @default(PUBLISHED) // DRAFT | PUBLISHED | ARCHIVED
+  processingError  String?
+  isDefault        Boolean       @default(false)
+  sortOrder        Int           @default(0)
+  publishedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([projectId, publicationState, processingState])
 }
 
 model NewsArticle {

@@ -3,10 +3,24 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      // Media uploads are validated again in the action (8 MB images / 80 MB video).
-      // This transport limit must be slightly larger than the largest accepted file.
-      bodySizeLimit: "82mb",
+      // Media and Visual Tour uploads (HTML/ZIP up to 100 MB).
+      bodySizeLimit: "120mb",
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/tours/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' blob: data: https:; frame-ancestors 'self' http://localhost:* https://localhost:*",
+          },
+        ],
+      },
+    ];
   },
   images: {
     unoptimized: true,

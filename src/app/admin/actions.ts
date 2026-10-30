@@ -9,6 +9,7 @@ import { createSession, destroySession, requireAdmin } from "@/lib/session";
 import { loginSchema, newsSchema, projectSchema, safeUrl, sectionOrderSchema } from "@/lib/validation";
 import { parsePageBlocksInput } from "@/lib/page-blocks-input";
 import { BLOCK_PAGES } from "@/lib/page-blocks";
+import { processVisualTourUpload, deleteVisualTourAssets } from "@/lib/tours";
 
 const str=(f:FormData,k:string)=>String(f.get(k)??"").trim();
 const bool=(f:FormData,k:string)=>f.get(k)==="on";
@@ -249,87 +250,313 @@ export async function saveTerms(_:ActionState,f:FormData):Promise<ActionState>{
 
 export async function saveContactPage(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();if(["contactEyebrowEn","contactEyebrowAr","contactPageTitleEn","contactPageTitleAr","contactIntroEn","contactIntroAr"].some(key=>!str(f,key)))return{error:"Complete all required page fields."};await prisma.contactPage.update({where:{id:"contactpage"},data:{heroEyebrowEn:str(f,"contactEyebrowEn"),heroEyebrowAr:str(f,"contactEyebrowAr"),heroTitleEn:str(f,"contactPageTitleEn"),heroTitleAr:str(f,"contactPageTitleAr"),heroBodyEn:str(f,"contactIntroEn"),heroBodyAr:str(f,"contactIntroAr")}});await saveFontSizes(f);revalidatePath("/en/contact");revalidatePath("/ar/contact");revalidatePath("/admin/contact");revalidatePath("/", "layout");return{success:"Contact page saved."};}
 
-export async function saveProject(_:ActionState,f:FormData):Promise<ActionState>{
-  await requireAdmin(); 
-  const data={
-    slug:str(f,"slug"),
-    nameEn:str(f,"nameEn"),
-    nameAr:str(f,"nameAr"),
-    shortDescriptionEn:str(f,"shortDescriptionEn"),
-    shortDescriptionAr:str(f,"shortDescriptionAr"),
-    locationEn:str(f,"locationEn"),
-    locationAr:str(f,"locationAr"),
-    coverImageUrl:str(f,"coverImageUrl"),
-    status:str(f,"status"),
-    featured:bool(f,"featured"),
-    featuredOrder:str(f,"featuredOrder")
+export async function saveProject(_: ActionState, f: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const data = {
+    slug: str(f, "slug"),
+    nameEn: str(f, "nameEn"),
+    nameAr: str(f, "nameAr"),
+    shortDescriptionEn: str(f, "shortDescriptionEn"),
+    shortDescriptionAr: str(f, "shortDescriptionAr"),
+    locationEn: str(f, "locationEn"),
+    locationAr: str(f, "locationAr"),
+    coverImageUrl: str(f, "coverImageUrl"),
+    status: str(f, "status"),
+    featured: bool(f, "featured"),
+    featuredOrder: str(f, "featuredOrder"),
   };
-  const parsed=projectSchema.safeParse(data);
-  if(!parsed.success)return{error:parsed.error.issues[0].message};
-  const gallery=Array.from({length:4},(_,index)=>str(f,`galleryImage${index+1}`)).filter(Boolean);
-  const extra={
-    coverImageAltEn:str(f,"coverImageAltEn")||parsed.data.nameEn,
-    coverImageAltAr:str(f,"coverImageAltAr")||parsed.data.nameAr,
-    coverImageFocalPoint:str(f,"coverImageFocalPoint")||"center",
-    ctaLabelEn:str(f,"ctaLabelEn")||null,
-    ctaLabelAr:str(f,"ctaLabelAr")||null,
-    ctaUrl:str(f,"ctaUrl")||null,
-    gallery:gallery.length?JSON.stringify(gallery):str(f,"gallery")||"[]",
-    projectType:str(f,"projectType")||"Residential",
-    progressStatus:str(f,"progressStatus")||"Ongoing",
-    fullDescriptionEn:str(f,"fullDescriptionEn")||null,
-    fullDescriptionAr:str(f,"fullDescriptionAr")||null,
-    masterPlanUrl:str(f,"masterPlanUrl")||null,
-    brochureUrl:str(f,"brochureUrl")||null,
-    videoTourUrl:str(f,"videoTourUrl")||null,
-    logoUrl:str(f,"logoUrl")||null,
-    keyFacts:str(f,"keyFacts")||"[]",
-    highlights:str(f,"highlights")||"[]",
-    unitTypes:str(f,"unitTypes")||"[]",
-    nearbyLocations:str(f,"nearbyLocations")||"[]",
-    constructionUpdates:str(f,"constructionUpdates")||"[]",
-    seoTitleEn:str(f,"seoTitleEn")||null,
-    seoTitleAr:str(f,"seoTitleAr")||null,
-    seoDescriptionEn:str(f,"seoDescriptionEn")||null,
-    seoDescriptionAr:str(f,"seoDescriptionAr")||null,
-    ogImageUrl:str(f,"ogImageUrl")||null
-  };
-  const id = str(f, "id");
-  try {
-    if (id) {
-      const existing = await prisma.project.findUnique({ where: { id } });
-      if (existing && existing.slug !== parsed.data.slug) {
-        await prisma.projectRedirect.upsert({
-          where: { sourceSlug: existing.slug },
-          update: { targetSlug: parsed.data.slug },
-          create: { sourceSlug: existing.slug, targetSlug: parsed.data.slug },
-        });
-        revalidatePath(`/en/projects/${existing.slug}`);
-        revalidatePath(`/ar/projects/${existing.slug}`);
-      }
-      await prisma.project.update({ where: { id }, data: { ...parsed.data, ...extra } });
-    } else {
-      await prisma.project.create({ data: { ...parsed.data, ...extra } });
+  const parsed = projectSchema.safeParse(data);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // Helper to parse JSON payloads safely
+  const parseJson = <T>(val: string, fallback: T): T => {
+    if (!val) return fallback;
+    try {
+      return JSON.parse(val) as T;
+    } catch {
+      return fallback;
     }
-  } catch {
-    return { error: "The slug must be unique." };
+  };
+
+  const rawKeyFactsInput = str(f, "keyFactsJson");
+  const rawHighlightsInput = str(f, "highlightsJson");
+  const rawUnitTypesInput = str(f, "unitTypesJson");
+  const rawGalleryItemsInput = str(f, "galleryItemsJson");
+  const rawUpdatesInput = str(f, "constructionUpdatesJson");
+  const rawConnectivityInput = str(f, "connectivityJson");
+
+  const parsedKeyFacts = rawKeyFactsInput ? parseJson<any[]>(rawKeyFactsInput, []) : null;
+  const parsedHighlights = rawHighlightsInput ? parseJson<any[]>(rawHighlightsInput, []) : null;
+  const parsedUnitTypes = rawUnitTypesInput ? parseJson<any[]>(rawUnitTypesInput, []) : null;
+  const parsedGalleryItems = rawGalleryItemsInput ? parseJson<any[]>(rawGalleryItemsInput, []) : null;
+  const parsedUpdates = rawUpdatesInput ? parseJson<any[]>(rawUpdatesInput, []) : null;
+  const parsedConnectivity = rawConnectivityInput ? parseJson<any[]>(rawConnectivityInput, []) : null;
+
+  // Build backward-compatible JSON fields if repeatable items are provided
+  const legacyKeyFacts = parsedKeyFacts
+    ? JSON.stringify(parsedKeyFacts.map((k) => ({ labelEn: k.labelEn, labelAr: k.labelAr || k.labelEn, valueEn: k.valueEn, valueAr: k.valueAr || k.valueEn, unitEn: k.unitEn || null, unitAr: k.unitAr || null, icon: k.icon || null })))
+    : str(f, "keyFacts") || "[]";
+
+  const legacyHighlights = parsedHighlights
+    ? JSON.stringify(parsedHighlights.map((h) => ({ titleEn: h.titleEn, titleAr: h.titleAr || h.titleEn, descriptionEn: h.descriptionEn, descriptionAr: h.descriptionAr || h.descriptionEn, icon: h.icon || null, image: h.imageUrl || null })))
+    : str(f, "highlights") || "[]";
+
+  const legacyUnitTypes = parsedUnitTypes
+    ? JSON.stringify(parsedUnitTypes.map((u, i) => ({ id: u.id || `unit-${i}`, nameEn: u.titleEn || u.nameEn || "", nameAr: u.titleAr || u.nameAr || u.titleEn || "", areaEn: u.areaEn || u.areaRange || "", areaAr: u.areaAr || u.areaRange || "", finishingEn: u.finishingEn || "", finishingAr: u.finishingAr || "", paymentEn: u.paymentPlanEn || u.paymentEn || "", paymentAr: u.paymentPlanAr || u.paymentAr || "", image: u.imageUrl || u.image || null, floorPlanUrl: u.floorPlanUrl || null })))
+    : str(f, "unitTypes") || "[]";
+
+  const legacyNearby = parsedConnectivity
+    ? JSON.stringify(parsedConnectivity.map((c) => ({ nameEn: c.destinationEn, nameAr: c.destinationAr || c.destinationEn, distanceEn: c.distanceOrDurationEn, distanceAr: c.distanceOrDurationAr || c.distanceOrDurationEn, type: c.travelType || "CAR" })))
+    : str(f, "nearbyLocations") || "[]";
+
+  const legacyUpdates = parsedUpdates
+    ? JSON.stringify(parsedUpdates.map((u) => ({ date: u.date || "", titleEn: u.titleEn, titleAr: u.titleAr || u.titleEn, imageUrl: u.imageUrl || null, isVideo: Boolean(u.isVideo) })))
+    : str(f, "constructionUpdates") || "[]";
+
+  const legacyGalleryImages = parsedGalleryItems
+    ? JSON.stringify(parsedGalleryItems.map((g) => g.imageUrl).filter(Boolean))
+    : str(f, "gallery") || "[]";
+
+  const latStr = str(f, "latitude");
+  const lngStr = str(f, "longitude");
+  const lat = latStr ? parseFloat(latStr) : null;
+  const lng = lngStr ? parseFloat(lngStr) : null;
+
+  const extra = {
+    projectCode: str(f, "projectCode") || null,
+    addressEn: str(f, "addressEn") || null,
+    addressAr: str(f, "addressAr") || null,
+    directionsUrl: str(f, "directionsUrl") || null,
+    latitude: !isNaN(lat as number) ? lat : null,
+    longitude: !isNaN(lng as number) ? lng : null,
+    mapUrl: str(f, "mapUrl") || null,
+    mobileHeroImageUrl: str(f, "mobileHeroImageUrl") || null,
+    heroVideoUrl: str(f, "heroVideoUrl") || null,
+    cardImageUrl: str(f, "cardImageUrl") || null,
+    heroTitleEn: str(f, "heroTitleEn") || null,
+    heroTitleAr: str(f, "heroTitleAr") || null,
+    heroDescriptionEn: str(f, "heroDescriptionEn") || null,
+    heroDescriptionAr: str(f, "heroDescriptionAr") || null,
+    coverImageAltEn: str(f, "coverImageAltEn") || parsed.data.nameEn,
+    coverImageAltAr: str(f, "coverImageAltAr") || parsed.data.nameAr,
+    coverImageFocalPoint: str(f, "coverImageFocalPoint") || "center",
+    ctaLabelEn: str(f, "ctaLabelEn") || null,
+    ctaLabelAr: str(f, "ctaLabelAr") || null,
+    ctaUrl: str(f, "ctaUrl") || null,
+    gallery: legacyGalleryImages,
+    projectType: str(f, "projectType") || "Residential",
+    progressStatus: str(f, "progressStatus") || "Ongoing",
+    fullDescriptionEn: str(f, "fullDescriptionEn") || null,
+    fullDescriptionAr: str(f, "fullDescriptionAr") || null,
+    masterPlanUrl: str(f, "masterPlanUrl") || null,
+    brochureUrl: str(f, "brochureUrl") || null,
+    videoTourUrl: str(f, "videoTourUrl") || null,
+    logoUrl: str(f, "logoUrl") || null,
+    keyFacts: legacyKeyFacts,
+    highlights: legacyHighlights,
+    unitTypes: legacyUnitTypes,
+    nearbyLocations: legacyNearby,
+    constructionUpdates: legacyUpdates,
+    seoTitleEn: str(f, "seoTitleEn") || null,
+    seoTitleAr: str(f, "seoTitleAr") || null,
+    seoDescriptionEn: str(f, "seoDescriptionEn") || null,
+    seoDescriptionAr: str(f, "seoDescriptionAr") || null,
+    ogImageUrl: str(f, "ogImageUrl") || null,
+  };
+
+  const id = str(f, "id");
+  let savedId = id;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      let targetProjectId = id;
+
+      if (id) {
+        const existing = await tx.project.findUnique({ where: { id } });
+        if (existing && existing.slug !== parsed.data.slug) {
+          await tx.projectRedirect.upsert({
+            where: { sourceSlug: existing.slug },
+            update: { targetSlug: parsed.data.slug },
+            create: { sourceSlug: existing.slug, targetSlug: parsed.data.slug },
+          });
+          revalidatePath(`/en/projects/${existing.slug}`);
+          revalidatePath(`/ar/projects/${existing.slug}`);
+        }
+        await tx.project.update({ where: { id }, data: { ...parsed.data, ...extra } });
+      } else {
+        const created = await tx.project.create({ data: { ...parsed.data, ...extra } });
+        targetProjectId = created.id;
+        savedId = created.id;
+      }
+
+      // Sync normalized Key Facts
+      if (parsedKeyFacts !== null) {
+        await tx.projectKeyFact.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedKeyFacts.length > 0) {
+          await tx.projectKeyFact.createMany({
+            data: parsedKeyFacts.map((kf, idx) => ({
+              projectId: targetProjectId,
+              labelEn: String(kf.labelEn || "").trim(),
+              labelAr: String(kf.labelAr || kf.labelEn || "").trim(),
+              valueEn: String(kf.valueEn || "").trim(),
+              valueAr: String(kf.valueAr || kf.valueEn || "").trim(),
+              unitEn: kf.unitEn ? String(kf.unitEn).trim() : null,
+              unitAr: kf.unitAr ? String(kf.unitAr).trim() : null,
+              icon: kf.icon ? String(kf.icon).trim() : null,
+              sortOrder: typeof kf.sortOrder === "number" ? kf.sortOrder : idx,
+            })),
+          });
+        }
+      }
+
+      // Sync normalized Highlights
+      if (parsedHighlights !== null) {
+        await tx.projectHighlight.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedHighlights.length > 0) {
+          await tx.projectHighlight.createMany({
+            data: parsedHighlights.map((h, idx) => ({
+              projectId: targetProjectId,
+              titleEn: String(h.titleEn || "").trim(),
+              titleAr: String(h.titleAr || h.titleEn || "").trim(),
+              descriptionEn: String(h.descriptionEn || "").trim(),
+              descriptionAr: String(h.descriptionAr || h.descriptionEn || "").trim(),
+              imageUrl: h.imageUrl ? String(h.imageUrl).trim() : null,
+              icon: h.icon ? String(h.icon).trim() : null,
+              sortOrder: typeof h.sortOrder === "number" ? h.sortOrder : idx,
+            })),
+          });
+        }
+      }
+
+      // Sync normalized Unit Types
+      if (parsedUnitTypes !== null) {
+        await tx.projectUnitType.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedUnitTypes.length > 0) {
+          await tx.projectUnitType.createMany({
+            data: parsedUnitTypes.map((u, idx) => ({
+              projectId: targetProjectId,
+              titleEn: String(u.titleEn || u.nameEn || "").trim(),
+              titleAr: String(u.titleAr || u.nameAr || u.titleEn || u.nameEn || "").trim(),
+              areaEn: u.areaEn ? String(u.areaEn).trim() : null,
+              areaAr: u.areaAr ? String(u.areaAr).trim() : null,
+              areaRange: u.areaRange ? String(u.areaRange).trim() : null,
+              areaUnit: u.areaUnit ? String(u.areaUnit).trim() : "sqm",
+              finishingEn: u.finishingEn ? String(u.finishingEn).trim() : null,
+              finishingAr: u.finishingAr ? String(u.finishingAr).trim() : null,
+              descriptionEn: u.descriptionEn ? String(u.descriptionEn).trim() : null,
+              descriptionAr: u.descriptionAr ? String(u.descriptionAr).trim() : null,
+              paymentPlanEn: (u.paymentPlanEn || u.paymentEn) ? String(u.paymentPlanEn || u.paymentEn).trim() : null,
+              paymentPlanAr: (u.paymentPlanAr || u.paymentAr) ? String(u.paymentPlanAr || u.paymentAr).trim() : null,
+              imageUrl: u.imageUrl || u.image ? String(u.imageUrl || u.image).trim() : null,
+              floorPlanUrl: u.floorPlanUrl ? String(u.floorPlanUrl).trim() : null,
+              sortOrder: typeof u.sortOrder === "number" ? u.sortOrder : idx,
+            })),
+          });
+        }
+      }
+
+      // Sync normalized Gallery Items
+      if (parsedGalleryItems !== null) {
+        await tx.projectGalleryItem.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedGalleryItems.length > 0) {
+          await tx.projectGalleryItem.createMany({
+            data: parsedGalleryItems.map((g, idx) => ({
+              projectId: targetProjectId,
+              imageUrl: String(g.imageUrl || "").trim(),
+              category: String(g.category || "RENDERS").trim(),
+              captionEn: g.captionEn ? String(g.captionEn).trim() : null,
+              captionAr: g.captionAr ? String(g.captionAr).trim() : null,
+              altEn: g.altEn ? String(g.altEn).trim() : null,
+              altAr: g.altAr ? String(g.altAr).trim() : null,
+              sortOrder: typeof g.sortOrder === "number" ? g.sortOrder : idx,
+            })),
+          });
+        }
+      }
+
+      // Sync normalized Construction Updates
+      if (parsedUpdates !== null) {
+        await tx.projectConstructionUpdate.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedUpdates.length > 0) {
+          await tx.projectConstructionUpdate.createMany({
+            data: parsedUpdates.map((u, idx) => ({
+              projectId: targetProjectId,
+              date: u.date ? new Date(u.date) : new Date(),
+              titleEn: String(u.titleEn || "").trim(),
+              titleAr: String(u.titleAr || u.titleEn || "").trim(),
+              descriptionEn: u.descriptionEn ? String(u.descriptionEn).trim() : null,
+              descriptionAr: u.descriptionAr ? String(u.descriptionAr).trim() : null,
+              imageUrl: u.imageUrl ? String(u.imageUrl).trim() : null,
+              isVideo: Boolean(u.isVideo),
+              videoUrl: u.videoUrl ? String(u.videoUrl).trim() : null,
+              sortOrder: typeof u.sortOrder === "number" ? u.sortOrder : idx,
+            })),
+          });
+        }
+      }
+
+      // Sync normalized Connectivity
+      if (parsedConnectivity !== null) {
+        await tx.projectConnectivity.deleteMany({ where: { projectId: targetProjectId } });
+        if (parsedConnectivity.length > 0) {
+          await tx.projectConnectivity.createMany({
+            data: parsedConnectivity.map((c, idx) => ({
+              projectId: targetProjectId,
+              destinationEn: String(c.destinationEn || "").trim(),
+              destinationAr: String(c.destinationAr || c.destinationEn || "").trim(),
+              distanceOrDurationEn: String(c.distanceOrDurationEn || "").trim(),
+              distanceOrDurationAr: String(c.distanceOrDurationAr || c.distanceOrDurationEn || "").trim(),
+              travelType: String(c.travelType || "CAR").trim(),
+              sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : idx,
+            })),
+          });
+        }
+      }
+    });
+  } catch (err: any) {
+    console.error("saveProject error:", err);
+    return { error: err.message || "Failed to save project. Ensure slug is unique." };
   }
 
   revalidatePath(`/en/projects/${parsed.data.slug}`);
   revalidatePath(`/ar/projects/${parsed.data.slug}`);
   revalidatePath("/admin/projects");
+  if (savedId) revalidatePath(`/admin/projects/${savedId}`);
   revalidatePath("/en");
   revalidatePath("/ar");
   revalidatePath("/en/projects");
   revalidatePath("/ar/projects");
   revalidatePath("/", "layout");
-  redirect("/admin/projects");
+
+  // If redirect requested (e.g. from new project creation without ajax)
+  if (str(f, "redirectAfterSave") === "true" || !id) {
+    redirect(`/admin/projects/${savedId}`);
+  }
+
+  return { success: "Project and all normalized details saved successfully." };
 }
 
 export async function deleteProject(f: FormData) {
   await requireAdmin();
   const id = str(f, "id");
-  const existing = await prisma.project.findUnique({ where: { id } });
+  const count = await prisma.contactSubmission.count({ where: { projectId: id } });
+  if (count > 0) {
+    throw new Error(
+      `Cannot delete project: ${count} contact enquiry/lead record(s) reference this project. Please set the project status to ARCHIVED instead.`
+    );
+  }
+
+  const existing = await prisma.project.findUnique({
+    where: { id },
+    include: { visualTours: true },
+  });
+
+  if (existing?.visualTours) {
+    for (const tour of existing.visualTours) {
+      await deleteVisualTourAssets(tour.id).catch(() => undefined);
+    }
+  }
+
   await prisma.project.delete({ where: { id } });
   if (existing) {
     revalidatePath(`/en/projects/${existing.slug}`);
@@ -341,6 +568,134 @@ export async function deleteProject(f: FormData) {
   revalidatePath("/en/projects");
   revalidatePath("/ar/projects");
   revalidatePath("/", "layout");
+}
+
+export async function uploadProjectVisualTour(_: ActionState, f: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const projectId = str(f, "projectId");
+  if (!projectId) return { error: "Missing project ID." };
+  const file = f.get("tourFile") as File | null;
+  if (!file || !file.size) return { error: "Please select an HTML file (.html) or ZIP archive (.zip) to upload." };
+
+  const titleEn = str(f, "titleEn") || file.name.replace(/\.[^/.]+$/, "");
+  const titleAr = str(f, "titleAr") || titleEn;
+  const descriptionEn = str(f, "descriptionEn") || null;
+  const descriptionAr = str(f, "descriptionAr") || null;
+  const localeTarget = str(f, "localeTarget") || "ALL";
+  const posterUrl = str(f, "posterUrl") || null;
+  const isDefault = bool(f, "isDefault");
+
+  const result = await processVisualTourUpload(file);
+  if (!result.success || !result.tourId) {
+    return { error: result.error || "Failed to process visual tour archive." };
+  }
+
+  try {
+    if (isDefault) {
+      await prisma.projectVisualTour.updateMany({
+        where: { projectId, localeTarget },
+        data: { isDefault: false },
+      });
+    }
+
+    await prisma.projectVisualTour.create({
+      data: {
+        id: result.tourId,
+        projectId,
+        titleEn,
+        titleAr,
+        descriptionEn,
+        descriptionAr,
+        localeTarget,
+        sourceType: result.sourceType || "ZIP",
+        originalFilename: result.originalFilename || file.name,
+        extractedPrefix: result.extractedPrefix!,
+        entryFilePath: result.entryFilePath || "index.html",
+        uploadedSize: result.uploadedSize || 0,
+        extractedSize: result.extractedSize || 0,
+        assetCount: result.assetCount || 1,
+        posterUrl,
+        processingState: "READY",
+        publicationState: "PUBLISHED",
+        isDefault,
+        publishedAt: new Date(),
+      },
+    });
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (project) {
+      revalidatePath(`/en/projects/${project.slug}`);
+      revalidatePath(`/ar/projects/${project.slug}`);
+    }
+    revalidatePath(`/admin/projects/${projectId}`);
+    revalidatePath("/en/projects");
+    revalidatePath("/ar/projects");
+
+    return {
+      success: `Visual tour "${titleEn}" uploaded and verified! Processed ${result.assetCount} asset(s) with entry file "${result.entryFilePath}".`,
+    };
+  } catch (err: any) {
+    await deleteVisualTourAssets(result.tourId).catch(() => undefined);
+    return { error: `Database error while saving visual tour: ${err.message}` };
+  }
+}
+
+export async function updateProjectVisualTour(_: ActionState, f: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = str(f, "tourId");
+  const tour = await prisma.projectVisualTour.findUnique({ where: { id } });
+  if (!tour) return { error: "Visual tour not found." };
+
+  const titleEn = str(f, "titleEn") || tour.titleEn;
+  const titleAr = str(f, "titleAr") || tour.titleAr;
+  const entryFilePath = str(f, "entryFilePath") || tour.entryFilePath;
+  const posterUrl = str(f, "posterUrl") || null;
+  const isDefault = bool(f, "isDefault");
+  const publicationState = (str(f, "publicationState") || tour.publicationState) as "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+  if (isDefault) {
+    await prisma.projectVisualTour.updateMany({
+      where: { projectId: tour.projectId, localeTarget: tour.localeTarget, id: { not: id } },
+      data: { isDefault: false },
+    });
+  }
+
+  await prisma.projectVisualTour.update({
+    where: { id },
+    data: {
+      titleEn,
+      titleAr,
+      entryFilePath,
+      posterUrl,
+      isDefault,
+      publicationState,
+      publishedAt: publicationState === "PUBLISHED" ? (tour.publishedAt || new Date()) : null,
+    },
+  });
+
+  const project = await prisma.project.findUnique({ where: { id: tour.projectId } });
+  if (project) {
+    revalidatePath(`/en/projects/${project.slug}`);
+    revalidatePath(`/ar/projects/${project.slug}`);
+  }
+  revalidatePath(`/admin/projects/${tour.projectId}`);
+  return { success: "Visual tour updated successfully." };
+}
+
+export async function deleteProjectVisualTour(f: FormData): Promise<void> {
+  await requireAdmin();
+  const id = str(f, "id");
+  const tour = await prisma.projectVisualTour.findUnique({ where: { id } });
+  if (!tour) return;
+  await prisma.projectVisualTour.delete({ where: { id } });
+  await deleteVisualTourAssets(id);
+
+  const project = await prisma.project.findUnique({ where: { id: tour.projectId } });
+  if (project) {
+    revalidatePath(`/en/projects/${project.slug}`);
+    revalidatePath(`/ar/projects/${project.slug}`);
+  }
+  revalidatePath(`/admin/projects/${tour.projectId}`);
 }
 
 export async function updateLead(f:FormData){await requireAdmin();const id=str(f,"id");const status=str(f,"status");if(!["NEW","CONTACTED","QUALIFIED","CLOSED"].includes(status))return;await prisma.contactSubmission.update({where:{id},data:{status,notes:str(f,"notes")||null}});revalidatePath("/admin/leads");}

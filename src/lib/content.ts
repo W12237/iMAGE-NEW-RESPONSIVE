@@ -354,6 +354,18 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
   if (!process.env.DATABASE_URL) return null;
   const project = await prisma.project.findFirst({
     where: { slug, ...(isPreview ? {} : { status: "PUBLISHED" }) },
+    include: {
+      keyFactsList: { orderBy: { sortOrder: "asc" } },
+      highlightsList: { orderBy: { sortOrder: "asc" } },
+      unitTypesList: { orderBy: { sortOrder: "asc" } },
+      galleryItemList: { orderBy: { sortOrder: "asc" } },
+      constructionUpdatesList: { orderBy: { sortOrder: "asc" } },
+      connectivityList: { orderBy: { sortOrder: "asc" } },
+      visualTours: {
+        where: isPreview ? {} : { publicationState: "PUBLISHED", processingState: "READY" },
+        orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
+      },
+    },
   });
   if (!project) return null;
 
@@ -366,16 +378,122 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
     }
   };
 
-  const rawKeyFacts = parseJson<Array<{ labelEn: string; labelAr: string; valueEn: string; valueAr: string }>>(project.keyFacts, []);
+  const rawKeyFacts = parseJson<Array<{ labelEn: string; labelAr: string; valueEn: string; valueAr: string; unitEn?: string; unitAr?: string; icon?: string }>>(project.keyFacts, []);
   const rawHighlights = parseJson<Array<{ titleEn: string; titleAr: string; descriptionEn: string; descriptionAr: string; icon?: string; image?: string }>>(project.highlights, []);
-  const rawUnitTypes = parseJson<Array<{ id: string; nameEn: string; nameAr: string; areaEn: string; areaAr: string; finishingEn: string; finishingAr: string; paymentEn: string; paymentAr: string; image?: string }>>(project.unitTypes, []);
+  const rawUnitTypes = parseJson<Array<{ id: string; nameEn?: string; nameAr?: string; titleEn?: string; titleAr?: string; areaEn?: string; areaAr?: string; areaRange?: string; areaUnit?: string; finishingEn?: string; finishingAr?: string; paymentEn?: string; paymentAr?: string; paymentPlanEn?: string; paymentPlanAr?: string; image?: string; floorPlanUrl?: string; descriptionEn?: string; descriptionAr?: string }>>(project.unitTypes, []);
   const rawNearby = parseJson<Array<{ nameEn: string; nameAr: string; distanceEn: string; distanceAr: string; type?: string }>>(project.nearbyLocations, []);
-  const rawUpdates = parseJson<Array<{ date: string; titleEn: string; titleAr: string; imageUrl?: string; isVideo?: boolean }>>(project.constructionUpdates, []);
+  const rawUpdates = parseJson<Array<{ date: string; titleEn: string; titleAr: string; descriptionEn?: string; descriptionAr?: string; imageUrl?: string; isVideo?: boolean }>>(project.constructionUpdates, []);
   const rawGallery = parseJson<string[]>(project.gallery, []);
+
+  // Merge gallery items: if normalized items exist, map them; otherwise use raw gallery
+  const galleryUrls = project.galleryItemList && project.galleryItemList.length > 0
+    ? project.galleryItemList.map(g => g.imageUrl)
+    : (rawGallery.length > 0 ? rawGallery : [project.coverImageUrl]);
+
+  // Key facts: normalized take priority
+  const keyFacts = project.keyFactsList && project.keyFactsList.length > 0
+    ? project.keyFactsList.map(f => ({
+        label: pick(locale, f.labelEn, f.labelAr),
+        value: pick(locale, f.valueEn, f.valueAr),
+        unit: pick(locale, f.unitEn ?? "", f.unitAr ?? "") || undefined,
+        icon: f.icon || undefined,
+      }))
+    : rawKeyFacts.map((f) => ({
+        label: pick(locale, f.labelEn, f.labelAr),
+        value: pick(locale, f.valueEn, f.valueAr),
+        unit: pick(locale, f.unitEn ?? "", f.unitAr ?? "") || undefined,
+        icon: f.icon || undefined,
+      }));
+
+  // Highlights: normalized take priority
+  const highlights = project.highlightsList && project.highlightsList.length > 0
+    ? project.highlightsList.map(h => ({
+        title: pick(locale, h.titleEn, h.titleAr),
+        description: pick(locale, h.descriptionEn, h.descriptionAr),
+        icon: h.icon || undefined,
+        image: h.imageUrl || undefined,
+      }))
+    : rawHighlights.map((h) => ({
+        title: pick(locale, h.titleEn, h.titleAr),
+        description: pick(locale, h.descriptionEn, h.descriptionAr),
+        icon: h.icon,
+        image: h.image,
+      }));
+
+  // Unit Types: normalized take priority
+  const unitTypes = project.unitTypesList && project.unitTypesList.length > 0
+    ? project.unitTypesList.map(u => ({
+        id: u.id,
+        name: pick(locale, u.titleEn, u.titleAr),
+        area: u.areaRange || pick(locale, u.areaEn ?? "", u.areaAr ?? "") || (u.areaUnit ? `${u.areaUnit}` : ""),
+        areaRange: u.areaRange || undefined,
+        areaUnit: u.areaUnit || undefined,
+        finishing: pick(locale, u.finishingEn ?? "", u.finishingAr ?? "") || (locale === "ar" ? "تشطيب كامل فندقي" : "Fully Finished"),
+        payment: pick(locale, u.paymentPlanEn ?? "", u.paymentPlanAr ?? "") || (locale === "ar" ? "مقدم ١٠٪ والتقسيط حتى ٨ سنوات" : "10% down payment, up to 8 years"),
+        description: pick(locale, u.descriptionEn ?? "", u.descriptionAr ?? "") || undefined,
+        image: u.imageUrl || undefined,
+        floorPlanUrl: u.floorPlanUrl || undefined,
+      }))
+    : rawUnitTypes.map((u) => ({
+        id: u.id,
+        name: pick(locale, u.nameEn || u.titleEn || "", u.nameAr || u.titleAr || ""),
+        area: u.areaRange || pick(locale, u.areaEn ?? "", u.areaAr ?? "") || "",
+        areaRange: u.areaRange,
+        areaUnit: u.areaUnit,
+        finishing: pick(locale, u.finishingEn ?? "", u.finishingAr ?? "") || (locale === "ar" ? "تشطيب كامل" : "Finished"),
+        payment: pick(locale, u.paymentEn ?? u.paymentPlanEn ?? "", u.paymentAr ?? u.paymentPlanAr ?? "") || (locale === "ar" ? "خطط سداد ميسرة" : "Flexible Payment Plans"),
+        description: pick(locale, u.descriptionEn ?? "", u.descriptionAr ?? "") || undefined,
+        image: u.image,
+        floorPlanUrl: u.floorPlanUrl,
+      }));
+
+  // Nearby Destinations / Connectivity: normalized take priority
+  const nearbyLocations = project.connectivityList && project.connectivityList.length > 0
+    ? project.connectivityList.map(c => ({
+        name: pick(locale, c.destinationEn, c.destinationAr),
+        distance: pick(locale, c.distanceOrDurationEn, c.distanceOrDurationAr),
+        type: c.travelType || "CAR",
+      }))
+    : rawNearby.map((n) => ({
+        name: pick(locale, n.nameEn, n.nameAr),
+        distance: pick(locale, n.distanceEn, n.distanceAr),
+        type: n.type,
+      }));
+
+  // Construction Updates: normalized take priority
+  const constructionUpdates = project.constructionUpdatesList && project.constructionUpdatesList.length > 0
+    ? project.constructionUpdatesList.map(u => ({
+        date: u.date ? u.date.toISOString().split("T")[0] : "",
+        title: pick(locale, u.titleEn, u.titleAr),
+        imageUrl: u.imageUrl || undefined,
+        isVideo: u.isVideo,
+      }))
+    : rawUpdates.map((u) => ({
+        date: u.date,
+        title: pick(locale, u.titleEn, u.titleAr),
+        imageUrl: u.imageUrl,
+        isVideo: u.isVideo,
+      }));
+
+  // Visual Tours: filter by locale (target === "ALL" or target === locale)
+  const visualTours = (project.visualTours || [])
+    .filter(t => t.localeTarget === "ALL" || t.localeTarget === locale)
+    .map(t => ({
+      id: t.id,
+      title: pick(locale, t.titleEn, t.titleAr),
+      description: pick(locale, t.descriptionEn ?? "", t.descriptionAr ?? "") || undefined,
+      extractedPrefix: t.extractedPrefix,
+      entryFilePath: t.entryFilePath,
+      posterUrl: t.posterUrl || undefined,
+      isDefault: t.isDefault,
+      localeTarget: t.localeTarget,
+      sourceType: t.sourceType,
+      assetCount: t.assetCount,
+    }));
 
   const otherPublished = await prisma.project.findMany({
     where: { status: "PUBLISHED", id: { not: project.id } },
-    take: 3,
+    take: 4,
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
 
@@ -384,13 +502,21 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
     project: {
       id: project.id,
       slug: project.slug,
+      projectCode: project.projectCode ?? undefined,
       name: pick(locale, project.nameEn, project.nameAr),
       shortDescription: pick(locale, project.shortDescriptionEn, project.shortDescriptionAr),
       fullDescription: pick(locale, project.fullDescriptionEn ?? project.shortDescriptionEn, project.fullDescriptionAr ?? project.shortDescriptionAr),
+      heroTitle: pick(locale, project.heroTitleEn ?? project.nameEn, project.heroTitleAr ?? project.nameAr),
+      heroDescription: pick(locale, project.heroDescriptionEn ?? project.shortDescriptionEn, project.heroDescriptionAr ?? project.shortDescriptionAr),
       location: pick(locale, project.locationEn, project.locationAr),
+      address: pick(locale, project.addressEn ?? project.locationEn, project.addressAr ?? project.locationAr),
+      directionsUrl: project.directionsUrl ?? undefined,
       coverImageUrl: project.coverImageUrl,
       coverImageAlt: pick(locale, project.coverImageAltEn, project.coverImageAltAr),
-      gallery: rawGallery.length > 0 ? rawGallery : [project.coverImageUrl],
+      mobileHeroImageUrl: project.mobileHeroImageUrl ?? undefined,
+      heroVideoUrl: project.heroVideoUrl ?? undefined,
+      cardImageUrl: project.cardImageUrl ?? undefined,
+      gallery: galleryUrls,
       logoUrl: project.logoUrl ?? undefined,
       ctaLabel: pick(locale, project.ctaLabelEn ?? "", project.ctaLabelAr ?? "") || undefined,
       ctaUrl: project.ctaUrl ?? undefined,
@@ -402,35 +528,12 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
       latitude: project.latitude ?? undefined,
       longitude: project.longitude ?? undefined,
       mapUrl: project.mapUrl ?? (project.latitude && project.longitude ? `https://maps.google.com/?q=${project.latitude},${project.longitude}` : undefined),
-      keyFacts: rawKeyFacts.map((f) => ({
-        label: pick(locale, f.labelEn, f.labelAr),
-        value: pick(locale, f.valueEn, f.valueAr),
-      })),
-      highlights: rawHighlights.map((h) => ({
-        title: pick(locale, h.titleEn, h.titleAr),
-        description: pick(locale, h.descriptionEn, h.descriptionAr),
-        icon: h.icon,
-        image: h.image,
-      })),
-      unitTypes: rawUnitTypes.map((u) => ({
-        id: u.id,
-        name: pick(locale, u.nameEn, u.nameAr),
-        area: pick(locale, u.areaEn, u.areaAr),
-        finishing: pick(locale, u.finishingEn, u.finishingAr),
-        payment: pick(locale, u.paymentEn, u.paymentAr),
-        image: u.image,
-      })),
-      nearbyLocations: rawNearby.map((n) => ({
-        name: pick(locale, n.nameEn, n.nameAr),
-        distance: pick(locale, n.distanceEn, n.distanceAr),
-        type: n.type,
-      })),
-      constructionUpdates: rawUpdates.map((u) => ({
-        date: u.date,
-        title: pick(locale, u.titleEn, u.titleAr),
-        imageUrl: u.imageUrl,
-        isVideo: u.isVideo,
-      })),
+      keyFacts,
+      highlights,
+      unitTypes,
+      nearbyLocations,
+      constructionUpdates,
+      visualTours,
       seoTitle: pick(locale, project.seoTitleEn ?? `${project.nameEn} — Image Developments`, project.seoTitleAr ?? `${project.nameAr} — إيمدج للتطوير العقاري`),
       seoDescription: pick(locale, project.seoDescriptionEn ?? project.shortDescriptionEn, project.seoDescriptionAr ?? project.shortDescriptionAr),
       ogImageUrl: project.ogImageUrl ?? project.coverImageUrl,

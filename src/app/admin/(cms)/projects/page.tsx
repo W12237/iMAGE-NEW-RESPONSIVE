@@ -6,12 +6,14 @@ import { DeleteActionButton } from "@/components/admin/delete-action-button";
 import { ActionForm } from "@/components/admin/action-form";
 import { Bilingual, Check } from "@/components/admin/fields";
 import { MediaField } from "@/components/admin/media-field";
+import { ProjectListManager } from "@/components/admin/project-list-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
   const [items, home, images] = await Promise.all([
     prisma.project.findMany({
+      include: { visualTours: true },
       orderBy: [{ featured: "desc" }, { featuredOrder: "asc" }, { updatedAt: "desc" }],
     }),
     prisma.homepage.findUniqueOrThrow({ where: { id: "homepage" } }),
@@ -251,100 +253,7 @@ export default async function ProjectsPage() {
         </span>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Preview</th>
-              <th>Project & Location</th>
-              <th>Status</th>
-              <th>Featured Order</th>
-              <th>Last Updated</th>
-              <th style={{ textAlign: "right" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((x) => (
-              <tr key={x.id}>
-                <td style={{ width: "68px" }}>
-                  <div
-                    style={{
-                      width: "56px",
-                      height: "40px",
-                      position: "relative",
-                      borderRadius: "6px",
-                      overflow: "hidden",
-                      background: "#e4ebe5",
-                    }}
-                  >
-                    {x.coverImageUrl ? (
-                      <Image src={x.coverImageUrl} alt={x.nameEn} fill style={{ objectFit: "cover" }} sizes="56px" />
-                    ) : null}
-                  </div>
-                </td>
-                <td>
-                  <strong style={{ fontSize: "14px", color: "var(--ink)" }}>{x.nameEn}</strong>
-                  <span style={{ marginInlineStart: "6px", fontSize: "13px", color: "var(--muted)" }}>
-                    ({x.nameAr})
-                  </span>
-                  <small style={{ color: "var(--muted)" }}>{x.locationEn} • {x.locationAr}</small>
-                </td>
-                <td>
-                  <span className={`status-badge status-${x.status.toLowerCase()}`}>{x.status}</span>
-                </td>
-                <td>
-                  {x.featured ? (
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--forest)",
-                        background: "rgba(42,69,52,0.08)",
-                        padding: "3px 8px",
-                        borderRadius: "12px",
-                      }}
-                    >
-                      {x.featuredOrder === 0 ? "★ Opening Hero" : `#${x.featuredOrder + 1} Featured`}
-                    </span>
-                  ) : (
-                    <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
-                  )}
-                </td>
-                <td>
-                  <span style={{ fontSize: "13px", color: "var(--muted)" }}>
-                    {x.updatedAt.toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
-                </td>
-                <td>
-                  <div className="row-actions" style={{ justifyContent: "flex-end" }}>
-                    <Link
-                      href={`/admin/projects/${x.id}`}
-                      className="secondary"
-                      style={{ padding: "6px 12px", fontSize: "12px" }}
-                    >
-                      Edit
-                    </Link>
-                    <DeleteActionButton id={x.id} name={x.nameEn} action={deleteProject} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {!items.length && (
-          <div className="empty" style={{ padding: "48px 24px" }}>
-            <p style={{ margin: "0 0 16px", fontSize: "16px", color: "var(--muted)" }}>No projects created yet.</p>
-            <Link className="primary" href="/admin/projects/new">
-              Create your first project
-            </Link>
-          </div>
-        )}
-      </div>
+      <ProjectListManager items={items} />
     </>
   );
 }

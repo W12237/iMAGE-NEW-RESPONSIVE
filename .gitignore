@@ -16,3 +16,6 @@ dist/
 !.env.example
 *.pem
 *.key
+database-backup.db
+database-dump.sql
+database-export.zip

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ProjectForm } from "@/components/admin/project-form";
+import { ProjectEditor } from "@/components/admin/project-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export default async function NewProjectPage() {
           <span>Add a new architectural project with English and Arabic content, cover imagery, and SEO metadata.</span>
         </div>
       </header>
-      <ProjectForm assets={assets} />
+      <ProjectEditor assets={assets} />
     </>
   );
 }

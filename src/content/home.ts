@@ -155,6 +155,8 @@ export type StatsSectionContent = {
 export type KeyFactItem = {
   label: string;
   value: string;
+  unit?: string;
+  icon?: string;
 };
 
 export type HighlightItem = {
@@ -168,9 +170,13 @@ export type UnitTypeItem = {
   id: string;
   name: string;
   area: string;
+  areaRange?: string;
+  areaUnit?: string;
   finishing: string;
   payment: string;
+  description?: string;
   image?: string;
+  floorPlanUrl?: string;
 };
 
 export type NearbyLocationItem = {
@@ -184,6 +190,19 @@ export type ConstructionUpdateItem = {
   title: string;
   imageUrl?: string;
   isVideo?: boolean;
+};
+
+export type ProjectVisualTourItem = {
+  id: string;
+  title: string;
+  description?: string;
+  extractedPrefix: string;
+  entryFilePath: string;
+  posterUrl?: string;
+  isDefault: boolean;
+  localeTarget: string;
+  sourceType?: string;
+  assetCount?: number;
 };
 
 export type ProjectDetailData = {
@@ -207,11 +226,20 @@ export type ProjectDetailData = {
   latitude?: number;
   longitude?: number;
   mapUrl?: string;
+  projectCode?: string;
+  address?: string;
+  directionsUrl?: string;
+  mobileHeroImageUrl?: string;
+  heroVideoUrl?: string;
+  cardImageUrl?: string;
+  heroTitle?: string;
+  heroDescription?: string;
   keyFacts: KeyFactItem[];
   highlights: HighlightItem[];
   unitTypes: UnitTypeItem[];
   nearbyLocations: NearbyLocationItem[];
   constructionUpdates: ConstructionUpdateItem[];
+  visualTours?: ProjectVisualTourItem[];
   seoTitle?: string;
   seoDescription?: string;
   ogImageUrl?: string;
