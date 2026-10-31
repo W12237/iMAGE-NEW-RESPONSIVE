@@ -119,7 +119,7 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
 
       <main className="project-detail-page" dir={ar ? "rtl" : "ltr"}>
         {/* =========================================================
-            1. Project Hero (Full Width)
+            1. Project Hero (Full Viewport - 100vh Take All The Page)
         ========================================================= */}
         <section className="project-hero" aria-label={project.name}>
           <div className="project-hero-media">
@@ -136,71 +136,104 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
           </div>
 
           <div className="project-hero-content stage-pad">
-            <nav className="project-breadcrumb" aria-label="Breadcrumb">
-              <Link href={homeHref}>{ar ? "الرئيسية" : "Home"}</Link>
-              <span aria-hidden="true">/</span>
-              <Link href={projectsHref}>{ar ? "المشاريع" : "Projects"}</Link>
-              <span aria-hidden="true">/</span>
-              <strong>{project.name}</strong>
-            </nav>
+            {/* Top meta: Breadcrumbs & Badges */}
+            <div className="project-hero-meta-row">
+              <nav className="project-breadcrumb" aria-label="Breadcrumb">
+                <Link href={homeHref}>{ar ? "الرئيسية" : "Home"}</Link>
+                <span className="breadcrumb-sep" aria-hidden="true">/</span>
+                <Link href={projectsHref}>{ar ? "المشاريع" : "Projects"}</Link>
+                <span className="breadcrumb-sep" aria-hidden="true">/</span>
+                <strong>{project.name}</strong>
+              </nav>
 
-            <div className="project-hero-badges">
-              <span className="hero-pill hero-pill--location">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>{project.location}</span>
-              </span>
-              <span className="hero-pill hero-pill--type">
-                {project.projectType}
-              </span>
-              <span className="hero-pill hero-pill--status">
-                {project.progressStatus}
-              </span>
+              <div className="project-hero-badges">
+                {project.location && (
+                  <span className="hero-pill hero-pill--location">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>{project.location}</span>
+                  </span>
+                )}
+                {project.projectType && (
+                  <span className="hero-pill hero-pill--type">
+                    {project.projectType}
+                  </span>
+                )}
+                {project.progressStatus && (
+                  <span className="hero-pill hero-pill--status">
+                    {project.progressStatus}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "12px" }}>
-              {project.logoUrl && (
-                <div style={{ position: "relative", width: "48px", height: "48px", filter: "brightness(0) invert(1)" }}>
-                  <Image src={project.logoUrl} alt={project.name} fill style={{ objectFit: "contain" }} sizes="48px" />
-                </div>
+            {/* Title & Brand Identity */}
+            <div className="project-hero-main">
+              <div className="project-hero-title-row">
+                {project.logoUrl && (
+                  <div className="project-hero-logo" aria-hidden="true">
+                    <Image src={project.logoUrl} alt={project.name} fill style={{ objectFit: "contain" }} sizes="52px" />
+                  </div>
+                )}
+                <h1 className="project-hero-title">{project.name}</h1>
+              </div>
+
+              {project.shortDescription && (
+                <p className="project-hero-deck">{project.shortDescription}</p>
               )}
-              <h1 className="project-hero-title" style={{ margin: 0 }}>{project.name}</h1>
             </div>
 
-            <p className="project-hero-deck">{project.shortDescription}</p>
-
-            <div className="project-hero-ctas">
-              <button
-                type="button"
-                className="btn-project-primary"
-                onClick={() => handleScrollTo("overview")}
-              >
-                <span>{ar ? "اكتشف المشروع" : "Discover Project"}</span>
-                <b aria-hidden="true">↓</b>
-              </button>
-
-              <button
-                type="button"
-                className="btn-project-enquire-hero"
-                onClick={() => handleOpenProjectEnquiry()}
-              >
-                <span>{ar ? "سجل اهتمامك" : "Register Interest"}</span>
-              </button>
-
-              {hasAnyTour && (
+            {/* CTAs & Bottom Scroll Indicator */}
+            <div className="project-hero-footer">
+              <div className="project-hero-ctas">
                 <button
-                  ref={tourTriggerBtnRef}
                   type="button"
-                  className="btn-project-tour"
-                  onClick={openVisualTour}
-                  aria-label={ar ? "جولة افتراضية" : "Visual Tour"}
+                  className="btn-project-enquire-hero"
+                  onClick={() => handleOpenProjectEnquiry()}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+                  <span>{ar ? "سجل اهتمامك" : "Register Interest"}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: ar ? "rotate(180deg)" : "none" }}>
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
                   </svg>
-                  <span>{ar ? "جولة افتراضية" : "Visual Tour"}</span>
                 </button>
-              )}
+
+                {hasAnyTour && (
+                  <button
+                    ref={tourTriggerBtnRef}
+                    type="button"
+                    className="btn-project-tour"
+                    onClick={openVisualTour}
+                    aria-label={ar ? "جولة افتراضية" : "Visual Tour"}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+                    </svg>
+                    <span>{ar ? "جولة افتراضية" : "Visual Tour"}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="btn-project-primary"
+                  onClick={() => handleScrollTo("overview")}
+                >
+                  <span>{ar ? "اكتشف المشروع" : "Discover Project"}</span>
+                  <b aria-hidden="true">↓</b>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="project-hero-scroll-cue"
+                onClick={() => handleScrollTo("overview")}
+                aria-label={ar ? "انتقل إلى نظرة عامة على المشروع" : "Scroll to project overview"}
+              >
+                <div className="scroll-cue-mouse" aria-hidden="true">
+                  <span className="scroll-cue-wheel" />
+                </div>
+                <span className="scroll-cue-text">{ar ? "استكشف التفاصيل" : "Scroll to explore"}</span>
+              </button>
             </div>
           </div>
         </section>
