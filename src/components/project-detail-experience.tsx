@@ -153,16 +153,6 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
                     <span>{project.location}</span>
                   </span>
                 )}
-                {project.projectType && (
-                  <span className="hero-pill hero-pill--type">
-                    {project.projectType}
-                  </span>
-                )}
-                {project.progressStatus && (
-                  <span className="hero-pill hero-pill--status">
-                    {project.progressStatus}
-                  </span>
-                )}
               </div>
             </div>
 
