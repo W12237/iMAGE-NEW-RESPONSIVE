@@ -1,7 +1,7 @@
 import type { PageSectionLayout } from "@/lib/page-section-layouts";
 
 export type Locale = "en" | "ar";
-export type PageSectionContent = { id:string; kind?:string; settings?:import("../lib/block-settings").BlockSettings; layout:PageSectionLayout; eyebrow:string; title:string; body:string; image?:string; imageAlt:string; ctaLabel?:string; ctaUrl?:string; backgroundRgb:string };
+export type PageSectionContent = { id: string; kind?: string; settings?: import("../lib/block-settings").BlockSettings; layout: PageSectionLayout; eyebrow: string; title: string; body: string; image?: string; imageAlt: string; ctaLabel?: string; ctaUrl?: string; backgroundRgb: string };
 export type NavItemContent = {
   id?: string;
   label: string;
@@ -26,6 +26,8 @@ export type HomeContent = {
     slug?: string;
     name: string;
     location: string;
+    locationEn?: string;
+    locationAr?: string;
     promise: string;
     image: string;
     alt?: string;
@@ -44,6 +46,12 @@ export type HomeContent = {
     spacing: "compact" | "standard" | "spacious";
     theme: "light" | "warm" | "dark";
     imagePosition: "start" | "end";
+    filterEnabled?: boolean;
+    showResultCount?: boolean;
+    locationFilterLabel?: string;
+    typeFilterLabel?: string;
+    statusFilterLabel?: string;
+    resetFilterLabel?: string;
   };
   inquiryProjects: { id: string; name: string }[];
   openingProjects?: { name: string; location: string; image: string }[];
@@ -88,7 +96,7 @@ export type HomeContent = {
   };
   common: { projects: string; explore: string; menu: string; close: string; language: string; contact: string; rights: string; statsHeading?: string };
   customSections?: PageSectionContent[];
-  pageSectionsByPage?: Record<string,PageSectionContent[]>;
+  pageSectionsByPage?: Record<string, PageSectionContent[]>;
 };
 
 export type HomeJournalArticle = {
@@ -425,7 +433,57 @@ export type ProjectsPageContent = HomeContent & {
 
 export type AboutPageContent = HomeContent & {
   aboutPage: {
-    hero: { enabled: boolean; eyebrow: string; title: string; body: string; image?: string; alt: string };
+    hero: {
+      enabled: boolean;
+      eyebrow: string;
+      title: string;
+      body: string;
+      image?: string;
+      alt: string;
+      ctaLabel?: string;
+    };
+    whoWeAre?: {
+      enabled: boolean;
+      eyebrow: string;
+      title: string;
+      body: string;
+      approach?: string;
+      image?: string;
+      alt?: string;
+      primaryCtaLabel?: string;
+      primaryCtaUrl?: string;
+      brochureCtaLabel?: string;
+    };
+    visionMission?: {
+      enabled: boolean;
+      visionEyebrow: string;
+      visionTitle: string;
+      visionBody: string;
+      missionEyebrow: string;
+      missionTitle: string;
+      missionBody: string;
+      image?: string;
+      alt?: string;
+      ctaLabel?: string;
+      ctaUrl?: string;
+    };
+    achievements?: {
+      enabled: boolean;
+      eyebrow: string;
+      title: string;
+      description: string;
+      ctaLabel?: string;
+      ctaUrl?: string;
+    };
+    leadership?: {
+      enabled: boolean;
+      eyebrow: string;
+      title: string;
+      description: string;
+      ctaLabel?: string;
+      ctaUrl?: string;
+      members: { id: string; name: string; role: string; bio: string; image: string; alt: string }[];
+    };
     blocks: { id: string; enabled: boolean; eyebrow: string; title: string; body: string; image?: string; alt?: string }[];
   };
 };
@@ -487,7 +545,7 @@ const sharedNews = siteMedia.news;
 export const content: Record<Locale, HomeContent> = {
   en: {
     locale: "en", dir: "ltr",
-    backgrounds: { opening:"255, 255, 255",hero:"255, 255, 255",about:"255, 255, 255",projects:"255, 255, 255",lifestyle:"255, 255, 255",stats:"255, 255, 255",journal:"255, 255, 255",closing:"255, 255, 255",footer:"255, 255, 255" },
+    backgrounds: { opening: "255, 255, 255", hero: "255, 255, 255", about: "255, 255, 255", projects: "255, 255, 255", lifestyle: "255, 255, 255", stats: "255, 255, 255", journal: "255, 255, 255", closing: "255, 255, 255", footer: "255, 255, 255" },
     nav: [
       { id: "nav-home", label: "Home", href: "#top", group: "primary", previewImage: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2400&q=88", focalPoint: "center" },
       { id: "nav-about", label: "About Us", href: "/about", group: "primary", previewImage: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1600&q=86", focalPoint: "center" },
@@ -500,9 +558,9 @@ export const content: Record<Locale, HomeContent> = {
       { id: "nav-partners", label: "Partners", href: "/partners", group: "secondary", previewImage: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=2200&q=88", focalPoint: "center" },
     ],
     hero: { eyebrow: "Building a new point of view", title: ["Space,", "imagined", "differently."], note: "Thoughtful communities for the way Egypt lives next.", scroll: "Discover" },
-    about: { enabled: true, eyebrow: "Our journey", title: "A timeline of places, people and progress.", intro: "From our first idea to the communities taking shape today, every chapter adds a new perspective.", milestones: [{id:"2008",year:"2008",title:"The first perspective",body:"Image Developments began with a belief that real estate should start with how people want to live.",image:siteMedia.detail,alt:"Architectural beginnings"},{id:"2018",year:"2018",title:"Communities take shape",body:"A growing portfolio brought landscape, architecture and everyday life into one considered vision.",image:siteMedia.projects[0],alt:"A growing residential community"},{id:"2025",year:"2025",title:"A new chapter",body:"New destinations carry the same human idea forward, expressed with greater ambition and clarity.",image:siteMedia.projects[1],alt:"A contemporary Image destination"}] },
+    about: { enabled: true, eyebrow: "Our journey", title: "A timeline of places, people and progress.", intro: "From our first idea to the communities taking shape today, every chapter adds a new perspective.", milestones: [{ id: "2008", year: "2008", title: "The first perspective", body: "Image Developments began with a belief that real estate should start with how people want to live.", image: siteMedia.detail, alt: "Architectural beginnings" }, { id: "2018", year: "2018", title: "Communities take shape", body: "A growing portfolio brought landscape, architecture and everyday life into one considered vision.", image: siteMedia.projects[0], alt: "A growing residential community" }, { id: "2025", year: "2025", title: "A new chapter", body: "New destinations carry the same human idea forward, expressed with greater ambition and clarity.", image: siteMedia.projects[1], alt: "A contemporary Image destination" }] },
     projects: [{ name: "Aera", location: "New Cairo", promise: "A quieter expression of city life.", image: sharedProjects[0] }, { name: "Solaya", location: "New Zayed", promise: "Sunlit homes shaped by the landscape.", image: sharedProjects[1] }, { name: "Marea", location: "North Coast", promise: "A horizon made for slower days.", image: sharedProjects[2] }],
-    inquiryProjects: [{id:"aera",name:"Aera"},{id:"solaya",name:"Solaya"},{id:"marea",name:"Marea"}],
+    inquiryProjects: [{ id: "aera", name: "Aera" }, { id: "solaya", name: "Solaya" }, { id: "marea", name: "Marea" }],
     lifestyle: { eyebrow: "Beyond the building", title: "The most memorable spaces leave room for life to happen.", ctaLabel: "Discover Our Story", ctaUrl: "/about" },
     stats: [{ value: "18+", label: "Years shaping distinctive places" }, { value: "4.2M", label: "Square metres in development" }, { value: "9,500", label: "Homes thoughtfully envisioned" }],
     statsSection: {
@@ -536,7 +594,7 @@ export const content: Record<Locale, HomeContent> = {
   },
   ar: {
     locale: "ar", dir: "rtl",
-    backgrounds: { opening:"255, 255, 255",hero:"255, 255, 255",about:"255, 255, 255",projects:"255, 255, 255",lifestyle:"255, 255, 255",stats:"255, 255, 255",journal:"255, 255, 255",closing:"255, 255, 255",footer:"255, 255, 255" },
+    backgrounds: { opening: "255, 255, 255", hero: "255, 255, 255", about: "255, 255, 255", projects: "255, 255, 255", lifestyle: "255, 255, 255", stats: "255, 255, 255", journal: "255, 255, 255", closing: "255, 255, 255", footer: "255, 255, 255" },
     nav: [
       { id: "nav-home", label: "الرئيسية", href: "#top", group: "primary", previewImage: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2400&q=88", focalPoint: "center" },
       { id: "nav-about", label: "من نحن", href: "/about", group: "primary", previewImage: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1600&q=86", focalPoint: "center" },
@@ -549,9 +607,9 @@ export const content: Record<Locale, HomeContent> = {
       { id: "nav-partners", label: "شركاؤنا", href: "/partners", group: "secondary", previewImage: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=2200&q=88", focalPoint: "center" },
     ],
     hero: { eyebrow: "نبني منظوراً جديداً", title: ["مساحات", "نتخيلها", "بشكل مختلف."], note: "مجتمعات مدروسة لحياة مصر في الغد.", scroll: "اكتشف" },
-    about: { enabled: true, eyebrow: "رحلتنا", title: "مسيرة من الأماكن والناس والتقدم.", intro: "من فكرتنا الأولى إلى المجتمعات التي تتشكل اليوم، يضيف كل فصل منظوراً جديداً.", milestones: [{id:"2008",year:"2008",title:"المنظور الأول",body:"بدأت إيمدج للتطوير العقاري بإيمان بأن العقار يجب أن يبدأ من الطريقة التي يرغب الناس في العيش بها.",image:siteMedia.detail,alt:"البدايات المعمارية"},{id:"2018",year:"2018",title:"مجتمعات تتشكل",body:"جمعت محفظة متنامية بين الطبيعة والعمارة والحياة اليومية ضمن رؤية واحدة مدروسة.",image:siteMedia.projects[0],alt:"مجتمع سكني متنامٍ"},{id:"2025",year:"2025",title:"فصل جديد",body:"تحمل وجهات جديدة الفكرة الإنسانية ذاتها إلى الأمام بطموح ووضوح أكبر.",image:siteMedia.projects[1],alt:"إحدى وجهات إيمدج المعاصرة"}] },
+    about: { enabled: true, eyebrow: "رحلتنا", title: "مسيرة من الأماكن والناس والتقدم.", intro: "من فكرتنا الأولى إلى المجتمعات التي تتشكل اليوم، يضيف كل فصل منظوراً جديداً.", milestones: [{ id: "2008", year: "2008", title: "المنظور الأول", body: "بدأت إيمدج للتطوير العقاري بإيمان بأن العقار يجب أن يبدأ من الطريقة التي يرغب الناس في العيش بها.", image: siteMedia.detail, alt: "البدايات المعمارية" }, { id: "2018", year: "2018", title: "مجتمعات تتشكل", body: "جمعت محفظة متنامية بين الطبيعة والعمارة والحياة اليومية ضمن رؤية واحدة مدروسة.", image: siteMedia.projects[0], alt: "مجتمع سكني متنامٍ" }, { id: "2025", year: "2025", title: "فصل جديد", body: "تحمل وجهات جديدة الفكرة الإنسانية ذاتها إلى الأمام بطموح ووضوح أكبر.", image: siteMedia.projects[1], alt: "إحدى وجهات إيمدج المعاصرة" }] },
     projects: [{ name: "إيرا", location: "القاهرة الجديدة", promise: "تعبير أكثر هدوءاً عن حياة المدينة.", image: sharedProjects[0] }, { name: "سولايا", location: "زايد الجديدة", promise: "بيوت يغمرها الضوء وتشكلها الطبيعة.", image: sharedProjects[1] }, { name: "ماريا", location: "الساحل الشمالي", promise: "أفق صُنع لأيام أكثر هدوءاً.", image: sharedProjects[2] }],
-    inquiryProjects: [{id:"aera",name:"إيرا"},{id:"solaya",name:"سولايا"},{id:"marea",name:"ماريا"}],
+    inquiryProjects: [{ id: "aera", name: "إيرا" }, { id: "solaya", name: "سولايا" }, { id: "marea", name: "ماريا" }],
     lifestyle: { eyebrow: "أبعد من المباني", title: "أكثر الأماكن حضوراً هي التي تترك للحياة مساحتها.", ctaLabel: "اكتشف قصتنا", ctaUrl: "/about" },
     stats: [{ value: "+18", label: "عاماً من الريادة في صناعة المكان" }, { value: "4.2M", label: "متر مربع قيد التطوير والإنجاز" }, { value: "9,500", label: "منزل صُمم بعناية للحياة" }],
     statsSection: {

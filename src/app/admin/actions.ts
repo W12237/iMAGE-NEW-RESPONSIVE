@@ -156,7 +156,99 @@ export async function saveAbout(_:ActionState,f:FormData):Promise<ActionState>{
     if(str(f,`aboutBlockImage_${id}`)&&(!str(f,`aboutBlockImageAlt_${id}En`)||!str(f,`aboutBlockImageAlt_${id}Ar`)))return{error:"Add English and Arabic alt text for every section image."};
   }
   await prisma.$transaction(async tx=>{
-    await tx.homepage.update({where:{id:"homepage"},data:{aboutHeroEnabled:bool(f,"aboutHeroEnabled"),aboutHeroEyebrowEn:str(f,"aboutHeroEyebrowEn"),aboutHeroEyebrowAr:str(f,"aboutHeroEyebrowAr"),aboutHeroTitleEn:str(f,"aboutHeroTitleEn"),aboutHeroTitleAr:str(f,"aboutHeroTitleAr"),aboutHeroBodyEn:str(f,"aboutHeroBodyEn"),aboutHeroBodyAr:str(f,"aboutHeroBodyAr"),aboutHeroImageUrl:str(f,"aboutHeroImageUrl"),aboutHeroImageAltEn:str(f,"aboutHeroImageAltEn"),aboutHeroImageAltAr:str(f,"aboutHeroImageAltAr"),aboutEnabled:bool(f,"aboutEnabled"),aboutEyebrowEn:str(f,"aboutEyebrowEn"),aboutEyebrowAr:str(f,"aboutEyebrowAr"),aboutTitleEn:str(f,"aboutTitleEn"),aboutTitleAr:str(f,"aboutTitleAr"),aboutIntroEn:str(f,"aboutIntroEn"),aboutIntroAr:str(f,"aboutIntroAr")}});
+    const brochureVal = str(f, "companyBrochureUrl");
+    if (brochureVal !== undefined) {
+      await tx.globalSettings.update({
+        where: { id: "global" },
+        data: { companyBrochureUrl: brochureVal || null },
+      });
+    }
+
+    await tx.homepage.update({
+      where: { id: "homepage" },
+      data: {
+        aboutHeroEnabled: bool(f, "aboutHeroEnabled"),
+        aboutHeroEyebrowEn: str(f, "aboutHeroEyebrowEn"),
+        aboutHeroEyebrowAr: str(f, "aboutHeroEyebrowAr"),
+        aboutHeroTitleEn: str(f, "aboutHeroTitleEn"),
+        aboutHeroTitleAr: str(f, "aboutHeroTitleAr"),
+        aboutHeroBodyEn: str(f, "aboutHeroBodyEn"),
+        aboutHeroBodyAr: str(f, "aboutHeroBodyAr"),
+        aboutHeroImageUrl: str(f, "aboutHeroImageUrl"),
+        aboutHeroImageAltEn: str(f, "aboutHeroImageAltEn"),
+        aboutHeroImageAltAr: str(f, "aboutHeroImageAltAr"),
+        aboutHeroCtaLabelEn: str(f, "aboutHeroCtaLabelEn") || "Explore Our Journey",
+        aboutHeroCtaLabelAr: str(f, "aboutHeroCtaLabelAr") || "اكتشف رحلتنا",
+
+        aboutWhoWeAreEnabled: bool(f, "aboutWhoWeAreEnabled"),
+        aboutWhoWeAreEyebrowEn: str(f, "aboutWhoWeAreEyebrowEn") || "Who We Are",
+        aboutWhoWeAreEyebrowAr: str(f, "aboutWhoWeAreEyebrowAr") || "من نحن",
+        aboutWhoWeAreTitleEn: str(f, "aboutWhoWeAreTitleEn") || "Shaping Considered Communities Across Egypt",
+        aboutWhoWeAreTitleAr: str(f, "aboutWhoWeAreTitleAr") || "صناعة مجتمعات متكاملة ومدروسة في مصر",
+        aboutWhoWeAreBodyEn: str(f, "aboutWhoWeAreBodyEn") || "",
+        aboutWhoWeAreBodyAr: str(f, "aboutWhoWeAreBodyAr") || "",
+        aboutWhoWeAreApproachEn: str(f, "aboutWhoWeAreApproachEn") || null,
+        aboutWhoWeAreApproachAr: str(f, "aboutWhoWeAreApproachAr") || null,
+        aboutWhoWeAreImageUrl: str(f, "aboutWhoWeAreImageUrl") || null,
+        aboutWhoWeAreImageAltEn: str(f, "aboutWhoWeAreImageAltEn") || null,
+        aboutWhoWeAreImageAltAr: str(f, "aboutWhoWeAreImageAltAr") || null,
+        aboutWhoWeArePrimaryCtaEn: str(f, "aboutWhoWeArePrimaryCtaEn") || "Explore Our Projects",
+        aboutWhoWeArePrimaryCtaAr: str(f, "aboutWhoWeArePrimaryCtaAr") || "استكشف مشاريعنا",
+        aboutWhoWeArePrimaryCtaUrl: str(f, "aboutWhoWeArePrimaryCtaUrl") || "/projects",
+        aboutWhoWeAreBrochureCtaEn: str(f, "aboutWhoWeAreBrochureCtaEn") || "Download Brochure",
+        aboutWhoWeAreBrochureCtaAr: str(f, "aboutWhoWeAreBrochureCtaAr") || "تحميل البروشور",
+
+        aboutEnabled: bool(f, "aboutEnabled"),
+        aboutEyebrowEn: str(f, "aboutEyebrowEn"),
+        aboutEyebrowAr: str(f, "aboutEyebrowAr"),
+        aboutTitleEn: str(f, "aboutTitleEn"),
+        aboutTitleAr: str(f, "aboutTitleAr"),
+        aboutIntroEn: str(f, "aboutIntroEn"),
+        aboutIntroAr: str(f, "aboutIntroAr"),
+
+        aboutVisionMissionEnabled: bool(f, "aboutVisionMissionEnabled"),
+        aboutVisionEyebrowEn: str(f, "aboutVisionEyebrowEn") || "Our Vision",
+        aboutVisionEyebrowAr: str(f, "aboutVisionEyebrowAr") || "رؤيتنا",
+        aboutVisionTitleEn: str(f, "aboutVisionTitleEn") || "",
+        aboutVisionTitleAr: str(f, "aboutVisionTitleAr") || "",
+        aboutVisionBodyEn: str(f, "aboutVisionBodyEn") || "",
+        aboutVisionBodyAr: str(f, "aboutVisionBodyAr") || "",
+        aboutMissionEyebrowEn: str(f, "aboutMissionEyebrowEn") || "Our Mission",
+        aboutMissionEyebrowAr: str(f, "aboutMissionEyebrowAr") || "رسالتنا",
+        aboutMissionTitleEn: str(f, "aboutMissionTitleEn") || "",
+        aboutMissionTitleAr: str(f, "aboutMissionTitleAr") || "",
+        aboutMissionBodyEn: str(f, "aboutMissionBodyEn") || "",
+        aboutMissionBodyAr: str(f, "aboutMissionBodyAr") || "",
+        aboutVisionMissionImageUrl: str(f, "aboutVisionMissionImageUrl") || null,
+        aboutVisionMissionImageAltEn: str(f, "aboutVisionMissionImageAltEn") || null,
+        aboutVisionMissionImageAltAr: str(f, "aboutVisionMissionImageAltAr") || null,
+        aboutVisionMissionCtaEn: str(f, "aboutVisionMissionCtaEn") || "Explore Our Projects",
+        aboutVisionMissionCtaAr: str(f, "aboutVisionMissionCtaAr") || "استكشف مشاريعنا",
+        aboutVisionMissionCtaUrl: str(f, "aboutVisionMissionCtaUrl") || "/projects",
+
+        aboutAchievementsEnabled: bool(f, "aboutAchievementsEnabled"),
+        aboutAchievementsEyebrowEn: str(f, "aboutAchievementsEyebrowEn") || "Our Achievements",
+        aboutAchievementsEyebrowAr: str(f, "aboutAchievementsEyebrowAr") || "إنجازاتنا",
+        aboutAchievementsTitleEn: str(f, "aboutAchievementsTitleEn") || "",
+        aboutAchievementsTitleAr: str(f, "aboutAchievementsTitleAr") || "",
+        aboutAchievementsDescriptionEn: str(f, "aboutAchievementsDescriptionEn") || null,
+        aboutAchievementsDescriptionAr: str(f, "aboutAchievementsDescriptionAr") || null,
+        aboutAchievementsCtaEn: str(f, "aboutAchievementsCtaEn") || "View Our Track Record",
+        aboutAchievementsCtaAr: str(f, "aboutAchievementsCtaAr") || "استعرض سجل إنجازاتنا",
+        aboutAchievementsCtaUrl: str(f, "aboutAchievementsCtaUrl") || "/projects",
+
+        aboutLeadershipEnabled: bool(f, "aboutLeadershipEnabled"),
+        aboutLeadershipEyebrowEn: str(f, "aboutLeadershipEyebrowEn") || "Executive Leadership",
+        aboutLeadershipEyebrowAr: str(f, "aboutLeadershipEyebrowAr") || "القيادة التنفيذية",
+        aboutLeadershipTitleEn: str(f, "aboutLeadershipTitleEn") || "",
+        aboutLeadershipTitleAr: str(f, "aboutLeadershipTitleAr") || "",
+        aboutLeadershipDescriptionEn: str(f, "aboutLeadershipDescriptionEn") || null,
+        aboutLeadershipDescriptionAr: str(f, "aboutLeadershipDescriptionAr") || null,
+        aboutLeadershipCtaEn: str(f, "aboutLeadershipCtaEn") || "Contact Our Team",
+        aboutLeadershipCtaAr: str(f, "aboutLeadershipCtaAr") || "تواصل مع فريقنا",
+        aboutLeadershipCtaUrl: str(f, "aboutLeadershipCtaUrl") || "/contact",
+      },
+    });
     const existing=await tx.aboutMilestone.findMany({where:{homepageId:"homepage"},select:{id:true}});
     const existingIds=new Set(existing.map(item=>item.id));
     const retainedIds=ids.filter(id=>existingIds.has(id));

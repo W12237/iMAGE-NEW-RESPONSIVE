@@ -19,3 +19,12 @@ dist/
 database-backup.db
 database-dump.sql
 database-export.zip
+
+backups/
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
