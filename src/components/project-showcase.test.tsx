@@ -182,7 +182,7 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
   it("renders the 3-field filter bar in English with default values and correct structure", () => {
     const copy = getMockHomeContent("en");
     const html = renderToStaticMarkup(
-      <EnquiryProvider>
+      <EnquiryProvider copy={copy}>
         <ProjectShowcase copy={copy} />
       </EnquiryProvider>
     );
@@ -222,7 +222,7 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
   it("renders the 3-field filter bar in Arabic with complete localization and no English leakage", () => {
     const copy = getMockHomeContent("ar");
     const html = renderToStaticMarkup(
-      <EnquiryProvider>
+      <EnquiryProvider copy={copy}>
         <ProjectShowcase copy={copy} />
       </EnquiryProvider>
     );
@@ -260,7 +260,7 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
     });
     // With total = 0, returns null as per existing guard
     const html = renderToStaticMarkup(
-      <EnquiryProvider>
+      <EnquiryProvider copy={copy}>
         <ProjectShowcase copy={copy} />
       </EnquiryProvider>
     );
@@ -270,7 +270,7 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
   it("preserves section heading, view all link, and enquiry triggers", () => {
     const copy = getMockHomeContent("en");
     const html = renderToStaticMarkup(
-      <EnquiryProvider>
+      <EnquiryProvider copy={copy}>
         <ProjectShowcase copy={copy} />
       </EnquiryProvider>
     );
@@ -295,7 +295,7 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
     });
 
     const html = renderToStaticMarkup(
-      <EnquiryProvider>
+      <EnquiryProvider copy={minimalCopy}>
         <ProjectShowcase copy={minimalCopy} />
       </EnquiryProvider>
     );

@@ -159,6 +159,14 @@ export function PageTransitionProvider({
 
   const { centerImage, panels } = getMontageAssets(copy, isProjectsPage);
 
+  // Preload critical hero image for seamless transition
+  useEffect(() => {
+    if (typeof window !== "undefined" && centerImage) {
+      const img = new window.Image();
+      img.src = centerImage;
+    }
+  }, [centerImage]);
+
   // Sync viewport measurements for rock-solid clipPath calculations
   useEffect(() => {
     const update = () => {
@@ -419,10 +427,10 @@ export function PageTransitionProvider({
   const vh = viewportDims.height;
   const isMobile = vw < 768;
 
-  const panelH = Math.min(vh * (isMobile ? 0.62 : 0.7), isMobile ? 480 : 640);
-  const centerPanelW = Math.min(vw * (isMobile ? 0.84 : 0.23), isMobile ? 380 : 330);
-  const sidePanelW = Math.min(vw * 0.16, 210);
-  const gap = isMobile ? 0 : Math.max(12, Math.min(vw * 0.014, 20));
+  const panelH = Math.min(vh * (isMobile ? 0.56 : 0.7), isMobile ? 420 : 640);
+  const centerPanelW = isMobile ? Math.min(Math.round(vw * 0.70), 280) : Math.min(vw * 0.23, 330);
+  const sidePanelW = isMobile ? Math.min(Math.round(vw * 0.18), 75) : Math.min(vw * 0.16, 210);
+  const gap = isMobile ? 8 : Math.max(12, Math.min(vw * 0.014, 20));
 
   // The center panel's bounding box relative to viewport
   const centerInsetY = Math.max(0, Math.round((vh - panelH) / 2));
@@ -549,76 +557,73 @@ export function PageTransitionProvider({
               pointerEvents: "none",
             }}
           >
-            {/* Desktop Side Panels (Left) */}
+            {/* Desktop Side Panel: Outer Left (Desktop Only) */}
             {!isMobile && (
-              <>
-                {/* Panel 0: Outer Left */}
-                <motion.div
-                  className="intro-side-panel intro-side-panel--outer"
-                  initial={{ opacity: 0, y: 35, x: 0 }}
-                  animate={{
-                    opacity:
-                      state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.65,
-                    y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 20 : 0,
-                    x: state === "intro-expanding" ? -35 : 0,
-                  }}
-                  transition={{
-                    duration: state === "intro-expanding" ? 0.45 : 0.45,
-                    delay: state === "intro-expanding" ? 0 : 0.12,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
+              <motion.div
+                className="intro-side-panel intro-side-panel--outer"
+                initial={{ opacity: 0, y: 35, x: 0 }}
+                animate={{
+                  opacity:
+                    state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.65,
+                  y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 20 : 0,
+                  x: state === "intro-expanding" ? -35 : 0,
+                }}
+                transition={{
+                  duration: state === "intro-expanding" ? 0.45 : 0.45,
+                  delay: state === "intro-expanding" ? 0 : 0.12,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                style={{
+                  width: `${sidePanelW}px`,
+                  height: `${panelH * 0.88}px`,
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: "6px",
+                }}
+              >
+                <Image src={panels[0]} alt="" fill sizes="20vw" priority className="object-cover" />
+                <div
                   style={{
-                    width: `${sidePanelW}px`,
-                    height: `${panelH * 0.88}px`,
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: "6px",
+                    position: "absolute",
+                    inset: 0,
+                    backgroundColor: "rgba(10, 24, 16, 0.45)",
                   }}
-                >
-                  <Image src={panels[0]} alt="" fill sizes="20vw" priority className="object-cover" />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: "rgba(10, 24, 16, 0.45)",
-                    }}
-                  />
-                </motion.div>
-
-                {/* Panel 1: Inner Left */}
-                <motion.div
-                  className="intro-side-panel intro-side-panel--inner"
-                  initial={{ opacity: 0, y: 35, x: 0 }}
-                  animate={{
-                    opacity:
-                      state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.78,
-                    y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 15 : 0,
-                    x: state === "intro-expanding" ? -20 : 0,
-                  }}
-                  transition={{
-                    duration: state === "intro-expanding" ? 0.45 : 0.45,
-                    delay: state === "intro-expanding" ? 0 : 0.06,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  style={{
-                    width: `${sidePanelW}px`,
-                    height: `${panelH * 0.94}px`,
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <Image src={panels[1]} alt="" fill sizes="20vw" priority className="object-cover" />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: "rgba(10, 24, 16, 0.35)",
-                    }}
-                  />
-                </motion.div>
-              </>
+                />
+              </motion.div>
             )}
+
+            {/* Side Panel: Inner Left (Desktop & Mobile) */}
+            <motion.div
+              className="intro-side-panel intro-side-panel--inner"
+              initial={{ opacity: 0, y: 35, x: 0 }}
+              animate={{
+                opacity:
+                  state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.78,
+                y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 15 : 0,
+                x: state === "intro-expanding" ? (isMobile ? -25 : -20) : 0,
+              }}
+              transition={{
+                duration: state === "intro-expanding" ? 0.45 : 0.45,
+                delay: state === "intro-expanding" ? 0 : 0.06,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              style={{
+                width: `${sidePanelW}px`,
+                height: `${panelH * 0.94}px`,
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: "6px",
+              }}
+            >
+              <Image src={panels[1]} alt="" fill sizes="20vw" priority className="object-cover" />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(10, 24, 16, 0.35)",
+                }}
+              />
+            </motion.div>
 
             {/* Spacer placeholder for the central panel in the flex row layout */}
             <div
@@ -630,75 +635,72 @@ export function PageTransitionProvider({
               }}
             />
 
-            {/* Desktop Side Panels (Right) */}
-            {!isMobile && (
-              <>
-                {/* Panel 3: Inner Right */}
-                <motion.div
-                  className="intro-side-panel intro-side-panel--inner"
-                  initial={{ opacity: 0, y: 35, x: 0 }}
-                  animate={{
-                    opacity:
-                      state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.78,
-                    y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 15 : 0,
-                    x: state === "intro-expanding" ? 20 : 0,
-                  }}
-                  transition={{
-                    duration: state === "intro-expanding" ? 0.45 : 0.45,
-                    delay: state === "intro-expanding" ? 0 : 0.06,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  style={{
-                    width: `${sidePanelW}px`,
-                    height: `${panelH * 0.94}px`,
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <Image src={panels[3]} alt="" fill sizes="20vw" priority className="object-cover" />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: "rgba(10, 24, 16, 0.35)",
-                    }}
-                  />
-                </motion.div>
+            {/* Side Panel: Inner Right (Desktop & Mobile) */}
+            <motion.div
+              className="intro-side-panel intro-side-panel--inner"
+              initial={{ opacity: 0, y: 35, x: 0 }}
+              animate={{
+                opacity:
+                  state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.78,
+                y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 15 : 0,
+                x: state === "intro-expanding" ? (isMobile ? 25 : 20) : 0,
+              }}
+              transition={{
+                duration: state === "intro-expanding" ? 0.45 : 0.45,
+                delay: state === "intro-expanding" ? 0 : 0.06,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              style={{
+                width: `${sidePanelW}px`,
+                height: `${panelH * 0.94}px`,
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: "6px",
+              }}
+            >
+              <Image src={panels[3]} alt="" fill sizes="20vw" priority className="object-cover" />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(10, 24, 16, 0.35)",
+                }}
+              />
+            </motion.div>
 
-                {/* Panel 4: Outer Right */}
-                <motion.div
-                  className="intro-side-panel intro-side-panel--outer"
-                  initial={{ opacity: 0, y: 35, x: 0 }}
-                  animate={{
-                    opacity:
-                      state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.65,
-                    y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 20 : 0,
-                    x: state === "intro-expanding" ? 35 : 0,
-                  }}
-                  transition={{
-                    duration: state === "intro-expanding" ? 0.45 : 0.45,
-                    delay: state === "intro-expanding" ? 0 : 0.12,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
+            {/* Desktop Side Panel: Outer Right (Desktop Only) */}
+            {!isMobile && (
+              <motion.div
+                className="intro-side-panel intro-side-panel--outer"
+                initial={{ opacity: 0, y: 35, x: 0 }}
+                animate={{
+                  opacity:
+                    state === "intro-logo" ? 0 : state === "intro-expanding" ? 0 : 0.65,
+                  y: state === "intro-logo" ? 35 : state === "intro-expanding" ? 20 : 0,
+                  x: state === "intro-expanding" ? 35 : 0,
+                }}
+                transition={{
+                  duration: state === "intro-expanding" ? 0.45 : 0.45,
+                  delay: state === "intro-expanding" ? 0 : 0.12,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                style={{
+                  width: `${sidePanelW}px`,
+                  height: `${panelH * 0.88}px`,
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: "6px",
+                }}
+              >
+                <Image src={panels[4]} alt="" fill sizes="20vw" priority className="object-cover" />
+                <div
                   style={{
-                    width: `${sidePanelW}px`,
-                    height: `${panelH * 0.88}px`,
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: "6px",
+                    position: "absolute",
+                    inset: 0,
+                    backgroundColor: "rgba(10, 24, 16, 0.45)",
                   }}
-                >
-                  <Image src={panels[4]} alt="" fill sizes="20vw" priority className="object-cover" />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: "rgba(10, 24, 16, 0.45)",
-                    }}
-                  />
-                </motion.div>
-              </>
+                />
+              </motion.div>
             )}
           </div>
 

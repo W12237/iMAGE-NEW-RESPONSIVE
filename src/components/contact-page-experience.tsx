@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ContactPageContent } from "@/content/home";
 import { SiteHeader } from "./site-header";
 import { Footer } from "./homepage-experience";
@@ -12,6 +13,7 @@ export function ContactPageExperience({ copy }: { copy: ContactPageContent }) {
   const email = s?.email || "hello@imagedevelopments.com";
   const address = s?.address || (ar ? "القاهرة · جمهورية مصر العربية" : "Cairo, Arab Republic of Egypt");
   const workingHours = s?.workingHours || (ar ? "الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م" : "Sunday - Thursday: 9:00 AM - 6:00 PM");
+  const [mapActive, setMapActive] = useState(false);
 
   const scrollToForm = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -162,13 +164,48 @@ export function ContactPageExperience({ copy }: { copy: ContactPageContent }) {
           </div>
 
           <div className="contact-map-card">
-            <div className="contact-map-embed">
+            <div
+              className={`contact-map-embed${mapActive ? " is-active" : ""}`}
+              onClick={() => setMapActive(true)}
+              onFocus={() => setMapActive(true)}
+              tabIndex={0}
+              role="region"
+              aria-label={ar ? "خريطة تفاعلية — انقر للتفعيل" : "Interactive map — click to activate"}
+              style={!mapActive ? { cursor: "pointer", position: "relative" } : {}}
+            >
+              {!mapActive && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(21,42,32,0.04)",
+                  zIndex: 2,
+                  pointerEvents: "none",
+                }}>
+                  <span style={{
+                    background: "rgba(21,42,32,0.85)",
+                    color: "#fff",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    padding: "8px 18px",
+                    borderRadius: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {ar ? "انقر لتفعيل الخريطة" : "Click to enable map"}
+                  </span>
+                </div>
+              )}
               <iframe
                 title={ar ? "خريطة مقر إيمدج" : "Image Developments Office Map"}
                 src="https://maps.google.com/maps?q=New%20Cairo,%20Cairo%20Governorate,%20Egypt&t=&z=14&ie=UTF8&iwloc=&output=embed"
                 width="100%"
                 height="100%"
-                style={{ border: 0 }}
+                style={{ border: 0, pointerEvents: mapActive ? "auto" : "none" }}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />

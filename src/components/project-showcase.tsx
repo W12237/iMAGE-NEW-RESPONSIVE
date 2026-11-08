@@ -137,6 +137,7 @@ export function ProjectShowcase({
 
   const total = copy.projects?.length ?? 0;
   const ar = copy.locale === "ar";
+  const mediaTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   // Derive available locations from published projects
   const availableLocations = useMemo(() => {
@@ -902,8 +903,31 @@ export function ProjectShowcase({
               imagePos === "end" ? "is-image-end" : "is-image-start"
             }`}
           >
-            {/* Architectural Image */}
-            <div className="featured-project-media">
+            {/* Architectural Image with Touch Swipe */}
+            <div
+              className="featured-project-media"
+              onTouchStart={(e) => {
+                mediaTouchStart.current = {
+                  x: e.touches[0].clientX,
+                  y: e.touches[0].clientY,
+                };
+              }}
+              onTouchEnd={(e) => {
+                if (!mediaTouchStart.current || filteredProjects.length <= 1) return;
+                const dx = e.changedTouches[0].clientX - mediaTouchStart.current.x;
+                const dy = Math.abs(e.changedTouches[0].clientY - mediaTouchStart.current.y);
+                if (Math.abs(dx) > 40 && dy < 50) {
+                  if ((!ar && dx < 0) || (ar && dx > 0)) {
+                    setActiveIndex((prev) => (prev + 1) % filteredProjects.length);
+                  } else {
+                    setActiveIndex(
+                      (prev) => (prev - 1 + filteredProjects.length) % filteredProjects.length
+                    );
+                  }
+                }
+                mediaTouchStart.current = null;
+              }}
+            >
               <motion.div
                 key={`image-${activeProject.name}-${safeIndex}`}
                 initial={{ opacity: reduce ? 1 : 0.88, scale: reduce ? 1 : 0.99 }}

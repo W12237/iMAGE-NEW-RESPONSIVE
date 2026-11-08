@@ -25,6 +25,10 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
   const [galleryFilter, setGalleryFilter] = useState<"ALL" | "RENDERS" | "CONSTRUCTION">("ALL");
   const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
 
+  // Touch swipe state for lightbox
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
   // Visual tour state
   const visualTours = project.visualTours || [];
   const hasHtmlTours = visualTours.length > 0;
@@ -760,6 +764,29 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
           role="dialog"
           aria-modal="true"
           aria-label={ar ? "معرض الصور بالحجم الكامل" : "Full Screen Gallery"}
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+            touchStartY.current = e.touches[0].clientY;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null || touchStartY.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchStartX.current;
+            const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+            if (Math.abs(dx) > 50 && dy < 60) {
+              // Horizontal swipe — navigate gallery
+              setActiveLightboxIndex((prev) => {
+                if (prev === null) return prev;
+                // Swipe left → next (LTR) or prev (RTL)
+                if ((!ar && dx < 0) || (ar && dx > 0)) {
+                  return prev < filteredGallery.length - 1 ? prev + 1 : 0;
+                } else {
+                  return prev > 0 ? prev - 1 : filteredGallery.length - 1;
+                }
+              });
+            }
+            touchStartX.current = null;
+            touchStartY.current = null;
+          }}
         >
           <div className="lightbox-content">
             <button

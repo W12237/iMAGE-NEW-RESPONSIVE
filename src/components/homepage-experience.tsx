@@ -282,9 +282,39 @@ export function AboutTimeline({ copy, sectionNumber = "03", isAboutPage = false 
 
 function LivingStory({ copy, isAboutPage = false }: { copy: HomeContent; isAboutPage?: boolean }) {
   const ref = useRef<HTMLElement>(null);
+  const mediaTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const [mobileActiveIndex, setMobileActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const reduce = useReducedMotion();
+
+  useEffect(() => {
+    const q = window.matchMedia("(max-width: 800px)");
+    const sync = () => setIsMobile(q.matches);
+    sync();
+    q.addEventListener("change", sync);
+    return () => q.removeEventListener("change", sync);
+  }, []);
+
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const a = useTransform(scrollYProgress, [0, 1], [80, -80]);
   const b = useTransform(scrollYProgress, [0, 1], [-40, 100]);
+
+  // Mobile scroll-driven crossfade opacities for up to 4 images
+  const op0 = useTransform(scrollYProgress, [0, 0.22, 0.28], [1, 1, 0]);
+  const op1 = useTransform(scrollYProgress, [0.22, 0.28, 0.50, 0.56], [0, 1, 1, 0]);
+  const op2 = useTransform(scrollYProgress, [0.50, 0.56, 0.74, 0.80], [0, 1, 1, 0]);
+  const op3 = useTransform(scrollYProgress, [0.74, 0.80, 1], [0, 1, 1]);
+  const mobileOpacities = [op0, op1, op2, op3];
+
+  // Update active slide dot based on scroll progress
+  useEffect(() => {
+    if (!isMobile) return;
+    return scrollYProgress.on("change", (latest) => {
+      const idx = Math.min(Math.floor(latest * 4), 3);
+      setMobileActiveIndex(idx);
+    });
+  }, [isMobile, scrollYProgress]);
+
   if (copy.lifestyle.enabled === false) return null;
   const images = [copy.lifestyle.image, copy.about.milestones[0]?.image, copy.projects[0]?.image, copy.projects[1]?.image].filter(Boolean) as string[];
 
@@ -293,14 +323,80 @@ function LivingStory({ copy, isAboutPage = false }: { copy: HomeContent; isAbout
   const ctaLabel = copy.lifestyle.ctaLabel || defaultLabel;
   const ctaHref = isAboutPage ? "#about" : (copy.lifestyle.ctaUrl || `/${copy.locale}/about`);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    mediaTouchStart.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!mediaTouchStart.current) return;
+    const dx = e.changedTouches[0].clientX - mediaTouchStart.current.x;
+    const dy = Math.abs(e.changedTouches[0].clientY - mediaTouchStart.current.y);
+    if (Math.abs(dx) > 40 && dy < 50) {
+      if ((!ar && dx < 0) || (ar && dx > 0)) {
+        setMobileActiveIndex((prev) => Math.min(prev + 1, images.length - 1));
+      } else {
+        setMobileActiveIndex((prev) => Math.max(prev - 1, 0));
+      }
+    }
+    mediaTouchStart.current = null;
+  };
+
   return (
     <section ref={ref} className="living-story" style={{ backgroundColor: `rgb(${copy.backgrounds.lifestyle})` }}>
       <div className="living-sticky">
-        {images.map((src, index) => (
-          <motion.div key={`${src}-${index}`} className={`living-image living-image-${index + 1}`} style={{ y: index % 2 ? b : a }}>
-            <Media src={src} />
-          </motion.div>
-        ))}
+        {/* Desktop floating 4-image layout */}
+        {!isMobile && (
+          <>
+            {images.map((src, index) => (
+              <motion.div key={`${src}-${index}`} className={`living-image living-image-${index + 1}`} style={{ y: index % 2 ? b : a }}>
+                <Media src={src} />
+              </motion.div>
+            ))}
+          </>
+        )}
+
+        {/* Mobile scroll-driven multi-image frame with crossfade & touch swipe */}
+        {isMobile && (
+          <div
+            className="living-mobile-carousel"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="living-mobile-frame">
+              {images.map((src, index) => (
+                <motion.div
+                  key={`${src}-${index}`}
+                  className="living-mobile-slide"
+                  style={{
+                    opacity: reduce ? (index === mobileActiveIndex ? 1 : 0) : mobileOpacities[index] || op3,
+                  }}
+                >
+                  <Media src={src} alt={`${copy.lifestyle.title} ${index + 1}`} />
+                </motion.div>
+              ))}
+              <div className="living-mobile-counter" aria-hidden="true">
+                <span>{String(mobileActiveIndex + 1).padStart(2, "0")} / {String(images.length).padStart(2, "0")}</span>
+              </div>
+            </div>
+            {/* Dots */}
+            <div className="living-mobile-dots" aria-hidden="true">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`living-mobile-dot ${i === mobileActiveIndex ? "is-active" : ""}`}
+                  onClick={() => setMobileActiveIndex(i)}
+                  aria-label={`Image ${i + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Center content */}
         <div className="living-centre">
           <BrandMark />
           <p className="kicker">{copy.lifestyle.eyebrow}</p>
@@ -327,6 +423,8 @@ function LivingStory({ copy, isAboutPage = false }: { copy: HomeContent; isAbout
 
 function Journal({ copy }: { copy: HomeContent }) {
   const [activeStory, setActiveStory] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
   if (copy.journal.enabled === false || !copy.journal.stories.length) return null;
   const ar = copy.locale === "ar";
   const current = copy.journal.stories[activeStory] || copy.journal.stories[0];
@@ -350,12 +448,47 @@ function Journal({ copy }: { copy: HomeContent }) {
       </div>
       <div className="editorial-grid">
         <Reveal className="editorial-feature">
-          <div className="editorial-image" aria-live="polite">
+          <div
+            className="editorial-image"
+            aria-live="polite"
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+              touchStartY.current = e.touches[0].clientY;
+            }}
+            onTouchEnd={(e) => {
+              if (touchStartX.current === null || touchStartY.current === null) return;
+              const dx = e.changedTouches[0].clientX - touchStartX.current;
+              const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+              if (Math.abs(dx) > 40 && dy < 50) {
+                if ((!ar && dx < 0) || (ar && dx > 0)) {
+                  setActiveStory((prev) => (prev + 1) % copy.journal.stories.length);
+                } else {
+                  setActiveStory((prev) => (prev - 1 + copy.journal.stories.length) % copy.journal.stories.length);
+                }
+              }
+              touchStartX.current = null;
+              touchStartY.current = null;
+            }}
+          >
             {copy.journal.stories.map((story, i) => (
               <div className={`editorial-image-frame${i === activeStory ? " is-active" : ""}`} aria-hidden={i !== activeStory} key={`${story.image}-${i}`}>
                 <Media src={story.image} alt={i === activeStory ? story.alt : ""} />
               </div>
             ))}
+            {/* Mobile Story Dots */}
+            {copy.journal.stories.length > 1 && (
+              <div className="editorial-mobile-dots" aria-hidden="true">
+                {copy.journal.stories.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`editorial-dot ${i === activeStory ? "is-active" : ""}`}
+                    onClick={() => setActiveStory(i)}
+                    aria-label={`Story ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div className="editorial-feature-cta" style={{ marginTop: "18px" }}>
             <Link href={storyHref} className="editorial-read-more-btn">
@@ -374,6 +507,7 @@ function Journal({ copy }: { copy: HomeContent }) {
                   className={`editorial-row${i === activeStory ? " is-active" : ""}`}
                   onMouseEnter={() => setActiveStory(i)}
                   onFocus={() => setActiveStory(i)}
+                  onClick={() => setActiveStory(i)}
                 >
                   <span>{story.date}</span>
                   <h3>{story.title}</h3>
