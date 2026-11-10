@@ -46,6 +46,30 @@ export default async function HomepageAdmin(){const [h,allAssets,allProjects,all
     </div>
 
     <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginTop: "16px" }}>
+      <h3 style={{ fontSize: "14px", fontWeight: 600, margin: "0 0 6px" }}>Location Tags & Filter Settings</h3>
+      <p className="hint">Configure the compact location tags bar displayed on the homepage showcase.</p>
+      
+      <div style={{ margin: "12px 0" }}>
+        <Check name="projectsLocationTagsEnabled" label="Enable Location Tags Filtering" checked={h.projectsLocationTagsEnabled ?? true}/>
+      </div>
+
+      <Bilingual base="projectsAllLabel" label="All Projects Tag Label" en={h.projectsAllLabelEn || "All Projects"} ar={h.projectsAllLabelAr || "كافة المشاريع"}/>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", margin: "16px 0" }}>
+        <div>
+          <Check name="projectsShowTagCounts" label="Show Project Counts in Tags" checked={h.projectsShowTagCounts ?? false}/>
+        </div>
+        <div>
+          <label htmlFor="projectsLocationOrder" style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "6px" }}>Tag Ordering Mode</label>
+          <select id="projectsLocationOrder" name="projectsLocationOrder" defaultValue={h.projectsLocationOrder || "auto"} style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: "1px solid var(--border)" }}>
+            <option value="auto">Automatic (By project count / relevance)</option>
+            <option value="manual">Manual (Selected locations order)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style={{ borderTop: "1px solid var(--border)", paddingTop: "16px", marginTop: "16px" }}>
       <h3 style={{ fontSize: "14px", fontWeight: 600, margin: "0 0 6px" }}>Featured Projects Selector & Order</h3>
       <p className="hint">Choose which published projects appear on the homepage and their display order.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>

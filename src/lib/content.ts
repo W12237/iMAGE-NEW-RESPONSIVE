@@ -27,6 +27,14 @@ import { normalizeBlockKind } from "./page-blocks";
 import { parseBlockSettings } from "./block-settings";
 import { prisma } from "./prisma";
 import { calculateReadingTime } from "./article-blocks";
+import {
+  resolveTypography,
+  TYPOGRAPHY_ROLES,
+  type TypographyRole,
+  type TypographyValues,
+  type ResolvedTypography,
+  type SupportedLocale,
+} from "./typography";
 
 export const PUBLIC_PAGES = [
   "home",
@@ -53,14 +61,27 @@ export const getPageSections = cache(async (locale: Locale, page: PublicPageKey)
 });
 
 export const getHomepageContent = cache(async (locale: Locale): Promise<HomeContent> => {
+  const supportedLocale: SupportedLocale = locale === "ar" ? "ar" : "en";
+  const roles: TypographyRole[] = ["heroHeading", "sectionHeading", "cardTitle", "body", "meta", "tag"];
+
   if (!process.env.DATABASE_URL) {
+    const emptyTypoMap = new Map<string, TypographyValues>();
+    const resolvedGlobal = Object.fromEntries(
+      roles.map(r => [r, resolveTypography(r, "global", supportedLocale, emptyTypoMap)])
+    ) as Record<TypographyRole, ResolvedTypography>;
+    const resolvedProjects = Object.fromEntries(
+      roles.map(r => [r, resolveTypography(r, "home_projects", supportedLocale, emptyTypoMap)])
+    ) as Record<TypographyRole, ResolvedTypography>;
+
     const base = { ...content[locale], backgrounds: { opening: "255, 255, 255", hero: "255, 255, 255", about: "255, 255, 255", projects: "255, 255, 255", lifestyle: "255, 255, 255", stats: "255, 255, 255", journal: "255, 255, 255", closing: "255, 255, 255", footer: "255, 255, 255" } };
-    return { ...base, opening: { enabled: true, headline: locale === "ar" ? "منظور جديد" : "A new perspective", poster: siteMedia.hero }, projectsOpening: { enabled: true, headline: locale === "ar" ? "محفظة المشاريع" : "Our Portfolio" }, hero: { ...base.hero, image: siteMedia.hero, poster: siteMedia.hero, alt: "Contemporary residence framed by palms" }, lifestyle: { ...base.lifestyle, image: siteMedia.lifestyle, alt: "Sunlit living space opening to the landscape" }, visibility: { projects: true, stats: true }, sectionOrder: ["projects", "lifestyle", "stats", "journal", "closing"], projectsSection: { heading: locale === "ar" ? "المشاريع" : "Projects", description: locale === "ar" ? "مجموعة مختارة من الوجهات السكنية والمختلطة التي تصنع ملامح جديدة للحياة الحضرية في مصر." : "A curated collection of residential and mixed-use destinations shaping Egypt's urban landscape.", exploreLabel: locale === "ar" ? "اكتشف المكان" : "Explore the place", enquireLabel: locale === "ar" ? "استفسر الآن" : "Enquire", viewAllLabel: locale === "ar" ? "جميع المشاريع" : "View All Projects", spacing: "standard", theme: "light", imagePosition: "start", filterEnabled: true, showResultCount: true, locationFilterLabel: locale === "ar" ? "الموقع" : "Location", typeFilterLabel: locale === "ar" ? "نوع المشروع" : "Project Type", statusFilterLabel: locale === "ar" ? "حالة المشروع" : "Project Status", resetFilterLabel: locale === "ar" ? "إعادة ضبط الفلاتر" : "Reset Filters" }, newsJournalSection: { enabled: true, label: locale === "ar" ? "الأخبار والمقالات" : "News & Journal", heading: locale === "ar" ? "قصص وأفكار ومستجدات" : "Stories, ideas, and updates.", description: locale === "ar" ? "رؤى معمارية ومحطات مجتمعية ومستجدات متواصلة تشكّل ملامح وجهاتنا العمرانية." : "Perspectives on architecture, community milestones, and the ongoing progress shaping our destinations.", ctaLabel: locale === "ar" ? "عرض جميع المقالات" : "View All Articles", ctaUrl: `/${locale}/journal`, mode: "AUTO", categoryFilter: "ALL", articlesCount: 3, articles: [] }, settings: { email: "hello@imagedevelopments.com", phone: "+20 2 0000 0000", hotline: "17087", workingHours: locale === "ar" ? "الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م" : "Sunday - Thursday: 9:00 AM - 6:00 PM", address: locale === "ar" ? "القاهرة · مصر" : "Cairo · Egypt", menuImage: siteMedia.detail, menuImageAlt: "Warm architectural interior", socials: [{ label: "Instagram", url: "https://instagram.com" }, { label: "LinkedIn", url: "https://linkedin.com" }, { label: "Facebook", url: "https://facebook.com" }], seoTitle: "Image Developments — Places with perspective", seoDescription: "Image Developments creates considered communities across Egypt." }, common: { ...base.common, statsHeading: locale === "ar" ? "إيمدج بالأرقام" : "Image in numbers" } };
+    return { ...base, opening: { enabled: true, headline: locale === "ar" ? "منظور جديد" : "A new perspective", poster: siteMedia.hero }, projectsOpening: { enabled: true, headline: locale === "ar" ? "محفظة المشاريع" : "Our Portfolio" }, hero: { ...base.hero, image: siteMedia.hero, poster: siteMedia.hero, alt: "Contemporary residence framed by palms" }, lifestyle: { ...base.lifestyle, image: siteMedia.lifestyle, alt: "Sunlit living space opening to the landscape" }, visibility: { projects: true, stats: true }, sectionOrder: ["projects", "lifestyle", "stats", "journal", "closing"], projectsSection: { heading: locale === "ar" ? "المشاريع" : "Projects", description: locale === "ar" ? "مجموعة مختارة من الوجهات السكنية والمختلطة التي تصنع ملامح جديدة للحياة الحضرية في مصر." : "A curated collection of residential and mixed-use destinations shaping Egypt's urban landscape.", exploreLabel: locale === "ar" ? "اكتشف المكان" : "Explore the place", enquireLabel: locale === "ar" ? "استفسر الآن" : "Enquire", viewAllLabel: locale === "ar" ? "جميع المشاريع" : "View All Projects", spacing: "standard", theme: "light", imagePosition: "start", filterEnabled: true, showResultCount: true, locationFilterLabel: locale === "ar" ? "الموقع" : "Location", typeFilterLabel: locale === "ar" ? "نوع المشروع" : "Project Type", statusFilterLabel: locale === "ar" ? "حالة المشروع" : "Project Status", resetFilterLabel: locale === "ar" ? "إعادة ضبط الفلاتر" : "Reset Filters", locationTagsEnabled: true, allLabel: locale === "ar" ? "كافة المشاريع" : "All Projects", showTagCounts: false, locationOrder: "auto" }, typography: { global: resolvedGlobal, home_projects: resolvedProjects }, newsJournalSection: { enabled: true, label: locale === "ar" ? "الأخبار والمقالات" : "News & Journal", heading: locale === "ar" ? "قصص وأفكار ومستجدات" : "Stories, ideas, and updates.", description: locale === "ar" ? "رؤى معمارية ومحطات مجتمعية ومستجدات متواصلة تشكّل ملامح وجهاتنا العمرانية." : "Perspectives on architecture, community milestones, and the ongoing progress shaping our destinations.", ctaLabel: locale === "ar" ? "عرض جميع المقالات" : "View All Articles", ctaUrl: `/${locale}/journal`, mode: "AUTO", categoryFilter: "ALL", articlesCount: 3, articles: [] }, settings: { email: "hello@imagedevelopments.com", phone: "+20 2 0000 0000", hotline: "17087", workingHours: locale === "ar" ? "الأحد - الخميس: ٩:٠٠ ص - ٦:٠٠ م" : "Sunday - Thursday: 9:00 AM - 6:00 PM", address: locale === "ar" ? "القاهرة · مصر" : "Cairo · Egypt", menuImage: siteMedia.detail, menuImageAlt: "Warm architectural interior", socials: [{ label: "Instagram", url: "https://instagram.com" }, { label: "LinkedIn", url: "https://linkedin.com" }, { label: "Facebook", url: "https://facebook.com" }], seoTitle: "Image Developments — Places with perspective", seoDescription: "Image Developments creates considered communities across Egypt." }, common: { ...base.common, statsHeading: locale === "ar" ? "إيمدج بالأرقام" : "Image in numbers" } };
   }
-  const [home, settings, nav, projects, openingProjects, news, pageSections, allPublishedNews] = await Promise.all([
+  const [home, settings, nav, projects, openingProjects, news, pageSections, allPublishedNews, typographyRecords] = await Promise.all([
     prisma.homepage.findUnique({ where: { id: "homepage" }, include: { stats: { orderBy: { sortOrder: "asc" } }, aboutMilestones: { orderBy: { sortOrder: "asc" } } } }),
     prisma.globalSettings.findUnique({ where: { id: "global" }, include: { socialLinks: { orderBy: { sortOrder: "asc" } } } }),
-    prisma.navigationItem.findMany({ where: { visible: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.navigationItem.findMany({
+      orderBy: { sortOrder: "asc" },
+    }),
     prisma.project.findMany({ where: { status: "PUBLISHED", featured: true }, orderBy: { featuredOrder: "asc" }, take: 6 }),
     prisma.project.findMany({ where: { status: "PUBLISHED" }, orderBy: [{ featured: "desc" }, { featuredOrder: "asc" }, { createdAt: "desc" }] }),
     prisma.newsArticle.findMany({ where: { status: "PUBLISHED", featured: true }, orderBy: [{ featuredOrder: "asc" }, { publicationDate: "desc" }], take: 3 }),
@@ -73,6 +94,7 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
       orderBy: [{ publicationDate: "desc" }],
       take: 40,
     }),
+    prisma.typographySetting.findMany(),
   ]);
   if (!home || !settings) throw new Error("CMS is not seeded. Run `pnpm db:seed`.");
   const fmt = new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
@@ -140,20 +162,43 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
       href: `/${locale}/journal/${a.slug}`,
     };
   });
+  const typoMap = new Map<string, TypographyValues>();
+  for (const record of typographyRecords) {
+    typoMap.set(record.key, {
+      fontSizeMobile: record.fontSizeMobile ?? undefined,
+      fontSizeDesktop: record.fontSizeDesktop ?? undefined,
+      lineHeight: record.lineHeight ?? undefined,
+      fontWeight: record.fontWeight ?? undefined,
+    });
+  }
+
+  const resolvedGlobal = Object.fromEntries(
+    roles.map(r => [r, resolveTypography(r, "global", supportedLocale, typoMap)])
+  ) as Record<TypographyRole, ResolvedTypography>;
+
+  const resolvedProjects = Object.fromEntries(
+    roles.map(r => [r, resolveTypography(r, "home_projects", supportedLocale, typoMap)])
+  ) as Record<TypographyRole, ResolvedTypography>;
+
   return {
     locale, dir: locale === "ar" ? "rtl" : "ltr",
     backgrounds: { opening: home.openingBackgroundRgb, hero: home.heroBackgroundRgb, about: home.aboutBackgroundRgb, projects: home.projectsBackgroundRgb, lifestyle: home.lifestyleBackgroundRgb, stats: home.statsBackgroundRgb, journal: home.journalBackgroundRgb, closing: home.closingBackgroundRgb, footer: home.footerBackgroundRgb },
     opening: { enabled: home.openingEnabled, headline: pick(locale, home.openingHeadlineEn, home.openingHeadlineAr), desktopVideo: home.openingVideoDesktopUrl ?? undefined, mobileVideo: home.openingVideoMobileUrl ?? undefined, poster: home.openingPosterUrl ?? home.heroMediaUrl },
     projectsOpening: { enabled: home.projectsOpeningEnabled, headline: pick(locale, home.projectsOpeningHeadlineEn, home.projectsOpeningHeadlineAr) },
-    nav: nav.map(n => ({
-      id: n.id,
-      label: pick(locale, n.labelEn, n.labelAr),
-      href: n.url,
-      external: n.external,
-      group: (n.group as "primary" | "secondary") || "primary",
-      previewImage: (locale === "ar" && n.previewImageUrlAr) ? n.previewImageUrlAr : (n.previewImageUrl || undefined),
-      focalPoint: n.focalPoint || "center",
-    })),
+    typography: { global: resolvedGlobal, home_projects: resolvedProjects },
+    nav: nav
+      .filter((n: any) => n.visible !== false || n.mobileVisible !== false)
+      .map(n => ({
+        id: n.id,
+        label: pick(locale, n.labelEn, n.labelAr),
+        href: n.url,
+        external: n.external,
+        group: (n.group as "primary" | "secondary") || "primary",
+        previewImage: (locale === "ar" && n.previewImageUrlAr) ? n.previewImageUrlAr : (n.previewImageUrl || undefined),
+        focalPoint: n.focalPoint || "center",
+        visible: n.visible,
+        mobileVisible: (n as any).mobileVisible !== false,
+      })),
     hero: { enabled: home.heroEnabled, eyebrow: pick(locale, home.heroEyebrowEn, home.heroEyebrowAr), title: pick(locale, home.heroTitleEn, home.heroTitleAr).split("\n"), note: pick(locale, home.heroNoteEn, home.heroNoteAr), scroll: pick(locale, home.heroDiscoverEn, home.heroDiscoverAr), image: home.heroMediaUrl, mobileImage: home.heroMobileMediaUrl ?? undefined, desktopVideo: home.heroVideoDesktopUrl ?? undefined, mobileVideo: home.heroVideoMobileUrl ?? undefined, poster: home.heroPosterUrl ?? home.heroMediaUrl, alt: pick(locale, home.heroMediaAltEn, home.heroMediaAltAr) },
     about: { enabled: home.aboutEnabled, eyebrow: pick(locale, home.aboutEyebrowEn, home.aboutEyebrowAr), title: pick(locale, home.aboutTitleEn, home.aboutTitleAr), intro: pick(locale, home.aboutIntroEn, home.aboutIntroAr), milestones: home.aboutMilestones.map(item => ({ id: item.id, year: item.year, title: pick(locale, item.titleEn, item.titleAr), body: pick(locale, item.bodyEn, item.bodyAr), image: item.imageUrl, alt: pick(locale, item.imageAltEn, item.imageAltAr) })) },
     projects: projects.map(p => ({
@@ -187,6 +232,11 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
       typeFilterLabel: locale === "ar" ? "نوع المشروع" : "Project Type",
       statusFilterLabel: locale === "ar" ? "حالة المشروع" : "Project Status",
       resetFilterLabel: locale === "ar" ? "إعادة ضبط الفلاتر" : "Reset Filters",
+      locationTagsEnabled: home.projectsLocationTagsEnabled ?? true,
+      allLabel: pick(locale, home.projectsAllLabelEn || "All Projects", home.projectsAllLabelAr || "كافة المشاريع"),
+      showTagCounts: home.projectsShowTagCounts ?? false,
+      locationOrder: (home.projectsLocationOrder as "auto" | "manual") || "auto",
+      visibleLocations: home.projectsVisibleLocations ? (() => { try { return JSON.parse(home.projectsVisibleLocations); } catch { return undefined; } })() : undefined,
     },
     inquiryProjects: openingProjects.map(p => ({ id: p.id, name: pick(locale, p.nameEn, p.nameAr) })),
     openingProjects: openingProjects.map(p => ({ name: pick(locale, p.nameEn, p.nameAr), location: pick(locale, p.locationEn, p.locationAr), image: p.coverImageUrl })),

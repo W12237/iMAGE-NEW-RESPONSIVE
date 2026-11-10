@@ -11,6 +11,7 @@ export type NavigationEditorItem = {
   labelAr: string;
   url: string;
   visible: boolean;
+  mobileVisible?: boolean;
   external: boolean;
   group?: string; // "primary" | "secondary"
   previewImageUrl?: string | null;
@@ -32,6 +33,7 @@ const emptyItem = (): NavigationEditorItem => ({
   labelAr: "",
   url: "",
   visible: true,
+  mobileVisible: true,
   external: false,
   group: "primary",
   previewImageUrl: "",
@@ -47,6 +49,20 @@ const FOCAL_POINTS = [
   { value: "right", label: "Right (80% 50%)" },
 ];
 
+const STANDARD_PAGE_PRESETS = [
+  { labelEn: "Home", labelAr: "الرئيسية", url: "#top", group: "primary" },
+  { labelEn: "About Us", labelAr: "من نحن", url: "/about", group: "primary" },
+  { labelEn: "Projects", labelAr: "المشاريع", url: "/projects", group: "primary" },
+  { labelEn: "Journal", labelAr: "يومياتنا", url: "/journal", group: "secondary" },
+  { labelEn: "Careers", labelAr: "الوظائف", url: "/careers", group: "primary" },
+  { labelEn: "History", labelAr: "تاريخنا", url: "/history", group: "secondary" },
+  { labelEn: "Team", labelAr: "فريقنا", url: "/team", group: "secondary" },
+  { labelEn: "Partners", labelAr: "شركاؤنا", url: "/partners", group: "secondary" },
+  { labelEn: "Contact Us", labelAr: "تواصل معنا", url: "/contact", group: "primary" },
+  { labelEn: "Privacy Policy", labelAr: "سياسة الخصوصية", url: "/policy", group: "secondary" },
+  { labelEn: "Terms & Conditions", labelAr: "الشروط والأحكام", url: "/terms", group: "secondary" },
+];
+
 export function NavigationEditor({
   initialItems,
   globalSettings,
@@ -58,6 +74,7 @@ export function NavigationEditor({
 }) {
   const [items, setItems] = useState<NavigationEditorItem[]>(initialItems);
   const [activeTab, setActiveTab] = useState<"items" | "preview">("items");
+  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
   const [expandedAr, setExpandedAr] = useState<Record<string, boolean>>({});
 
   // Preview tab interactive state
@@ -84,8 +101,26 @@ export function NavigationEditor({
     );
   };
 
-  const primaryItems = items.filter((item) => (item.group || "primary") === "primary");
-  const secondaryItems = items.filter((item) => item.group === "secondary");
+  const addPreset = (preset: typeof STANDARD_PAGE_PRESETS[number]) => {
+    const newItem: NavigationEditorItem = {
+      id: `new-${crypto.randomUUID()}`,
+      labelEn: preset.labelEn,
+      labelAr: preset.labelAr,
+      url: preset.url,
+      visible: true,
+      mobileVisible: true,
+      external: false,
+      group: preset.group,
+      previewImageUrl: "",
+      previewImageUrlAr: "",
+      focalPoint: "center",
+    };
+    setItems((curr) => [...curr, newItem]);
+  };
+
+  const primaryItems = items.filter((item) => item.visible && (item.group || "primary") === "primary");
+  const secondaryItems = items.filter((item) => item.visible && item.group === "secondary");
+  const mobileVisibleItems = items.filter((item) => item.mobileVisible !== false);
 
   return (
     <>
@@ -111,99 +146,114 @@ export function NavigationEditor({
           className={activeTab === "preview" ? "primary" : "secondary"}
           onClick={() => setActiveTab("preview")}
         >
-          Live Menu Preview
+          Live Menu Preview (Desktop & Mobile)
         </button>
       </div>
 
       {activeTab === "items" ? (
         <>
           {/* GLOBAL DEFAULT MENU IMAGE SETTING */}
-          <section
-            className="panel"
-            style={{
-              marginBottom: "24px",
-              border: "1px solid var(--line, #e2ded7)",
-              background: "#ffffff",
-              padding: "24px",
-              borderRadius: "12px",
-            }}
-          >
-            <div className="section-title">
-              <div>
-                <h2>Global Default Menu Image</h2>
-                <p className="hint">
-                  This image is displayed by default when the menu opens, and serves as the automatic fallback for links without a dedicated image.
-                </p>
-              </div>
+          <section className="panel" style={{ border: "1px solid var(--line, #e2ded7)", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
+            <div style={{ marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "16px", margin: "0 0 6px" }}>Global Default Menu Photograph</h2>
+              <p className="hint" style={{ margin: 0 }}>
+                This photograph appears in the desktop menu arch panel by default, and as a fallback for links that do not define a custom image.
+              </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", marginTop: "16px" }}>
-              <MediaField
-                name="defaultMenuMediaUrl"
-                label="Global Menu Image"
-                value={globalSettings?.menuMediaUrl || defaultMenuUrl}
-                assets={assets}
-                kind="IMAGE"
-                required
-              />
+            <MediaField
+              name="defaultMenuMediaUrl"
+              label="Default Menu Photograph URL"
+              value={defaultMenuUrl}
+              assets={assets}
+              kind="IMAGE"
+              required
+            />
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
-                <label>
-                  Focal Point
-                  <select
-                    name="defaultMenuMediaFocalPoint"
-                    defaultValue={globalSettings?.menuMediaFocalPoint || "center"}
-                  >
-                    {FOCAL_POINTS.map((fp) => (
-                      <option key={fp.value} value={fp.value}>
-                        {fp.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Image Alt Text (English)
-                  <input
-                    name="defaultMenuMediaAltEn"
-                    defaultValue={globalSettings?.menuMediaAltEn || "Warm architectural interior"}
-                  />
-                </label>
-                <label>
-                  Image Alt Text (العربية)
-                  <input
-                    name="defaultMenuMediaAltAr"
-                    dir="rtl"
-                    defaultValue={globalSettings?.menuMediaAltAr || "تصميم داخلي معماري دافئ"}
-                  />
-                </label>
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginTop: "16px" }}>
+              <label>
+                Default Image Focal Point (Cropping Center)
+                <select
+                  name="defaultMenuMediaFocalPoint"
+                  defaultValue={defaultMenuFocal}
+                >
+                  {FOCAL_POINTS.map((fp) => (
+                    <option key={fp.value} value={fp.value}>
+                      {fp.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                English Image Description
+                <input
+                  name="defaultMenuMediaAltEn"
+                  defaultValue={globalSettings?.menuMediaAltEn || "Image Developments architecture"}
+                  placeholder="e.g. Modern architectural façade"
+                />
+              </label>
+
+              <label>
+                Arabic Image Description (العربية)
+                <input
+                  name="defaultMenuMediaAltAr"
+                  defaultValue={globalSettings?.menuMediaAltAr || "العمارة المعاصرة في إيمدج"}
+                  dir="rtl"
+                  placeholder="مثال: واجهة معمارية راقية"
+                />
+              </label>
             </div>
           </section>
 
           {/* NAVIGATION ITEMS LIST */}
-          <section
-            className="panel"
-            style={{
-              border: "1px solid var(--line, #e2ded7)",
-              background: "#ffffff",
-              padding: "24px",
-              borderRadius: "12px",
-            }}
-          >
-            <div className="section-title navigation-editor-title">
+          <section className="panel">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", borderBottom: "1px solid var(--line, #e2ded7)", paddingBottom: "14px" }}>
               <div>
-                <h2>Header Menu Items</h2>
-                <p className="hint">
-                  The first 5 primary items appear directly in the menu list. Secondary items appear in the expandable &ldquo;More Pages&rdquo; group. Hovering or focusing any item swaps the photograph preview panel.
+                <h2 style={{ fontSize: "16px", margin: "0 0 4px" }}>Menu Links & Mobile Visibility</h2>
+                <p className="hint" style={{ margin: 0 }}>
+                  Customize the navigation links. Each link can be displayed on desktop, mobile, or both. All mobile-enabled links appear directly in the mobile menu view.
                 </p>
               </div>
-              <button
-                className="secondary"
-                type="button"
-                onClick={() => setItems((curr) => [...curr, emptyItem()])}
-              >
-                + Add Menu Item
-              </button>
+
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {/* Quick Add Presets */}
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <select
+                    onChange={(e) => {
+                      const preset = STANDARD_PAGE_PRESETS.find((p) => p.url === e.target.value);
+                      if (preset) {
+                        addPreset(preset);
+                        e.target.value = "";
+                      }
+                    }}
+                    defaultValue=""
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12.5px",
+                      border: "1px solid var(--border)",
+                      background: "#faf9f6",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="" disabled>+ Add Page Shortcut...</option>
+                    {STANDARD_PAGE_PRESETS.map((p) => (
+                      <option key={p.url} value={p.url}>
+                        {p.labelEn} ({p.labelAr})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => setItems((curr) => [...curr, emptyItem()])}
+                >
+                  + Add Custom Link
+                </button>
+              </div>
             </div>
 
             <div className="nav-editor" style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "18px" }}>
@@ -227,7 +277,7 @@ export function NavigationEditor({
                   >
                     <input type="hidden" name="id" value={item.id} />
 
-                    {/* Top Row: Index, Group Badge, Reordering & Remove */}
+                    {/* Top Row: Group Badge, Reordering & Remove */}
                     <div
                       style={{
                         display: "flex",
@@ -235,19 +285,11 @@ export function NavigationEditor({
                         justifyContent: "space-between",
                         borderBottom: "1px solid rgba(0,0,0,0.06)",
                         paddingBottom: "12px",
+                        flexWrap: "wrap",
+                        gap: "10px",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span
-                          style={{
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            color: "#b36f55",
-                            letterSpacing: "0.08em",
-                          }}
-                        >
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
                         <span
                           style={{
                             fontSize: "11px",
@@ -260,11 +302,16 @@ export function NavigationEditor({
                             letterSpacing: "0.05em",
                           }}
                         >
-                          {isSecondary ? "Secondary (More Pages)" : "Primary (Main Nav)"}
+                          {isSecondary ? "Secondary Group" : "Primary Group"}
                         </span>
                         <strong style={{ fontSize: "14px", color: "var(--ink, #111)" }}>
                           {item.labelEn || "Untitled Item"}
                         </strong>
+                        {item.labelAr && (
+                          <span style={{ fontSize: "13px", color: "var(--muted)", direction: "rtl" }}>
+                            ({item.labelAr})
+                          </span>
+                        )}
                       </div>
 
                       <div className="nav-item-actions" style={{ display: "flex", gap: "6px" }}>
@@ -349,14 +396,24 @@ export function NavigationEditor({
                           value={item.group || "primary"}
                           onChange={(e) => updateItem(item.id, { group: e.target.value })}
                         >
-                          <option value="primary">Primary (Top 5 visible)</option>
-                          <option value="secondary">Secondary (More Pages group)</option>
+                          <option value="primary">Primary (Main Desktop Nav)</option>
+                          <option value="secondary">Secondary (More Pages on Desktop)</option>
                         </select>
                       </label>
                     </div>
 
-                    {/* Flags: Visible & External */}
-                    <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+                    {/* Device Visibility Controls */}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "24px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        padding: "8px 12px",
+                        background: "rgba(0, 0, 0, 0.02)",
+                        borderRadius: "6px",
+                      }}
+                    >
                       <label className="check" style={{ display: "inline-flex", alignItems: "center", gap: "8px", margin: 0 }}>
                         <input
                           name={`visible_${item.id}`}
@@ -364,8 +421,21 @@ export function NavigationEditor({
                           defaultChecked={item.visible}
                           onChange={(e) => updateItem(item.id, { visible: e.target.checked })}
                         />
-                        <span>Visible in public menu</span>
+                        <span style={{ fontWeight: 600 }}>Visible on Desktop Menu</span>
                       </label>
+
+                      <label className="check" style={{ display: "inline-flex", alignItems: "center", gap: "8px", margin: 0 }}>
+                        <input
+                          name={`mobileVisible_${item.id}`}
+                          type="checkbox"
+                          defaultChecked={item.mobileVisible !== false}
+                          onChange={(e) => updateItem(item.id, { mobileVisible: e.target.checked })}
+                        />
+                        <span style={{ fontWeight: 600, color: "var(--forest, #152a20)" }}>
+                          Visible on Mobile Menu (All Links View)
+                        </span>
+                      </label>
+
                       <label className="check" style={{ display: "inline-flex", alignItems: "center", gap: "8px", margin: 0 }}>
                         <input
                           name={`external_${item.id}`}
@@ -488,169 +558,293 @@ export function NavigationEditor({
             borderRadius: "14px",
           }}
         >
-          <div style={{ marginBottom: "20px" }}>
-            <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#b36f55" }}>
-              CMS Interactive Preview
-            </span>
-            <h2 style={{ color: "#ffffff", margin: "4px 0 8px" }}>
-              Simulated Menu Navigation
-            </h2>
-            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", margin: 0 }}>
-              Hover or focus any link to preview its assigned image in the architectural arch panel on the right.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.1fr 0.9fr",
-              gap: "36px",
-              background: "#1b3327",
-              borderRadius: "12px",
-              padding: "28px",
-              alignItems: "center",
-            }}
-          >
-            {/* Links column */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#b36f55", marginBottom: "10px" }}>
-                Primary Links ({primaryItems.length})
-              </div>
-
-              {primaryItems.map((item, i) => {
-                const targetUrl = item.previewImageUrl || defaultMenuUrl;
-                return (
-                  <div
-                    key={item.id}
-                    onMouseEnter={() => {
-                      setPreviewHoveredUrl(targetUrl);
-                      setPreviewHoveredFocal(item.focalPoint || "center");
-                    }}
-                    onFocus={() => {
-                      setPreviewHoveredUrl(targetUrl);
-                      setPreviewHoveredFocal(item.focalPoint || "center");
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "16px",
-                      padding: "10px 0",
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      cursor: "pointer",
-                      transition: "color 0.2s ease, transform 0.2s ease",
-                      color: previewHoveredUrl === targetUrl ? "#b36f55" : "#ffffff",
-                    }}
-                    tabIndex={0}
-                  >
-                    <span style={{ fontSize: "11px", color: "#b36f55", width: "20px" }}>
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span style={{ fontSize: "20px", fontWeight: 500 }}>
-                      {item.labelEn || "Untitled"}
-                    </span>
-                    <span style={{ fontSize: "14px", opacity: 0.6, marginInlineStart: "auto" }}>
-                      {item.labelAr}
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* Expandable More Pages Preview Button */}
-              {secondaryItems.length > 0 && (
-                <div style={{ marginTop: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMoreOpen((v) => !v)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: "1px dashed rgba(255, 255, 255, 0.25)",
-                      color: "#b36f55",
-                      cursor: "pointer",
-                      width: "100%",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 0",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span>More Pages ({secondaryItems.length})</span>
-                    <span>{previewMoreOpen ? "▲" : "▼"}</span>
-                  </button>
-
-                  {previewMoreOpen && (
-                    <div style={{ display: "flex", flexDirection: "column", paddingInlineStart: "12px", marginTop: "8px" }}>
-                      {secondaryItems.map((item, idx) => {
-                        const targetUrl = item.previewImageUrl || defaultMenuUrl;
-                        return (
-                          <div
-                            key={item.id}
-                            onMouseEnter={() => {
-                              setPreviewHoveredUrl(targetUrl);
-                              setPreviewHoveredFocal(item.focalPoint || "center");
-                            }}
-                            onFocus={() => {
-                              setPreviewHoveredUrl(targetUrl);
-                              setPreviewHoveredFocal(item.focalPoint || "center");
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "14px",
-                              padding: "7px 0",
-                              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
-                              cursor: "pointer",
-                              color: previewHoveredUrl === targetUrl ? "#b36f55" : "rgba(255, 255, 255, 0.9)",
-                            }}
-                            tabIndex={0}
-                          >
-                            <span style={{ fontSize: "10px", color: "#b36f55", width: "18px" }}>
-                              {String(primaryItems.length + idx + 1).padStart(2, "0")}
-                            </span>
-                            <span style={{ fontSize: "16px" }}>
-                              {item.labelEn || "Untitled"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
+            <div>
+              <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#b36f55" }}>
+                CMS Interactive Preview
+              </span>
+              <h2 style={{ color: "#ffffff", margin: "4px 0 6px" }}>
+                {previewViewport === "mobile" ? "Mobile Menu View (All Links)" : "Desktop Menu View"}
+              </h2>
+              <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", margin: 0 }}>
+                {previewViewport === "mobile"
+                  ? "Direct view of all mobile-enabled links as displayed on smartphone viewports, without index numbers."
+                  : "Desktop view with hover arch photograph on the right, without index numbers."}
+              </p>
             </div>
 
-            {/* Preview image arch panel */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div
+            {/* Viewport Switcher */}
+            <div style={{ display: "inline-flex", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", overflow: "hidden" }}>
+              <button
+                type="button"
+                onClick={() => setPreviewViewport("desktop")}
                 style={{
-                  position: "relative",
-                  width: "100%",
-                  height: "340px",
-                  borderRadius: "100px 100px 0 0",
-                  overflow: "hidden",
-                  background: "#e5d6c5",
-                  boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  background: previewViewport === "desktop" ? "#b36f55" : "transparent",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
-                <Image
-                  src={previewHoveredUrl || defaultMenuUrl}
-                  alt="Navigation preview"
-                  fill
-                  style={{
-                    objectFit: "cover",
-                    objectPosition: previewHoveredFocal || defaultMenuFocal,
-                    transition: "all 0.3s ease",
-                  }}
-                  sizes="30vw"
-                />
-              </div>
-              <span style={{ marginTop: "10px", fontSize: "11px", color: "rgba(255,255,255,0.6)" }}>
-                {previewHoveredUrl ? "Previewing assigned link photo" : "Showing global default menu photo"}
-              </span>
+                Desktop Menu
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewViewport("mobile")}
+                style={{
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  background: previewViewport === "mobile" ? "#b36f55" : "transparent",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Mobile Menu ({mobileVisibleItems.length} Links)
+              </button>
             </div>
           </div>
+
+          {previewViewport === "mobile" ? (
+            /* MOBILE PREVIEW SIMULATOR (All links rendered directly without numbers) */
+            <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+              <div
+                style={{
+                  width: "390px",
+                  maxWidth: "100%",
+                  background: "#152a20",
+                  border: "2px solid rgba(255, 255, 255, 0.16)",
+                  borderRadius: "24px",
+                  padding: "24px 20px",
+                  boxShadow: "0 20px 48px rgba(0, 0, 0, 0.45)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                }}
+              >
+                {/* Mobile Top Controls Bar */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "12px" }}>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <span style={{ fontSize: "20px", cursor: "pointer", lineHeight: 1 }}>×</span>
+                    <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>English / العربية</span>
+                  </div>
+                  <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#b36f55", fontWeight: 600 }}>
+                    Mobile Menu
+                  </span>
+                </div>
+
+                {/* All Mobile Links List */}
+                <div style={{ display: "flex", flexDirection: "column", maxHeight: "420px", overflowY: "auto" }}>
+                  {mobileVisibleItems.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: item.group === "secondary" ? "10px 0" : "12px 0",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        color: "#ffffff",
+                      }}
+                    >
+                      <span style={{
+                        fontSize: item.group === "secondary" ? "16px" : "20px",
+                        fontWeight: item.group === "secondary" ? 400 : 500,
+                        color: item.group === "secondary" ? "rgba(255,255,255,0.85)" : "#ffffff",
+                      }}>
+                        {item.labelEn || "Untitled"}
+                      </span>
+                      <span style={{ fontSize: "13px", opacity: 0.6, direction: "rtl" }}>
+                        {item.labelAr}
+                      </span>
+                    </div>
+                  ))}
+
+                  {!mobileVisibleItems.length && (
+                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", padding: "16px 0" }}>
+                      No links are marked as visible on mobile.
+                    </p>
+                  )}
+                </div>
+
+                {/* Mobile Call Back CTA */}
+                <button
+                  type="button"
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    borderRadius: "999px",
+                    background: "#b36f55",
+                    color: "#ffffff",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Request a Call Back / اطلب اتصالاً
+                </button>
+
+                {/* Mobile Footer Contact */}
+                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.6)", textAlign: "center" }}>
+                  17087 • hello@imagedevelopments.com
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* DESKTOP PREVIEW */
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.1fr 0.9fr",
+                gap: "36px",
+                background: "#1b3327",
+                borderRadius: "12px",
+                padding: "28px",
+                alignItems: "center",
+              }}
+            >
+              {/* Links column */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#b36f55", marginBottom: "10px" }}>
+                  Primary Links ({primaryItems.length})
+                </div>
+
+                {primaryItems.map((item) => {
+                  const targetUrl = item.previewImageUrl || defaultMenuUrl;
+                  return (
+                    <div
+                      key={item.id}
+                      onMouseEnter={() => {
+                        setPreviewHoveredUrl(targetUrl);
+                        setPreviewHoveredFocal(item.focalPoint || "center");
+                      }}
+                      onFocus={() => {
+                        setPreviewHoveredUrl(targetUrl);
+                        setPreviewHoveredFocal(item.focalPoint || "center");
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        padding: "10px 0",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        cursor: "pointer",
+                        transition: "color 0.2s ease, transform 0.2s ease",
+                        color: previewHoveredUrl === targetUrl ? "#b36f55" : "#ffffff",
+                      }}
+                      tabIndex={0}
+                    >
+                      <span style={{ fontSize: "20px", fontWeight: 500 }}>
+                        {item.labelEn || "Untitled"}
+                      </span>
+                      <span style={{ fontSize: "14px", opacity: 0.6, marginInlineStart: "auto", direction: "rtl" }}>
+                        {item.labelAr}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {/* Expandable More Pages Preview Button */}
+                {secondaryItems.length > 0 && (
+                  <div style={{ marginTop: "12px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMoreOpen((v) => !v)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: "1px dashed rgba(255, 255, 255, 0.25)",
+                        color: "#b36f55",
+                        cursor: "pointer",
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 0",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span>More Pages ({secondaryItems.length})</span>
+                      <span>{previewMoreOpen ? "▲" : "▼"}</span>
+                    </button>
+
+                    {previewMoreOpen && (
+                      <div style={{ display: "flex", flexDirection: "column", paddingInlineStart: "12px", marginTop: "8px" }}>
+                        {secondaryItems.map((item) => {
+                          const targetUrl = item.previewImageUrl || defaultMenuUrl;
+                          return (
+                            <div
+                              key={item.id}
+                              onMouseEnter={() => {
+                                setPreviewHoveredUrl(targetUrl);
+                                setPreviewHoveredFocal(item.focalPoint || "center");
+                              }}
+                              onFocus={() => {
+                                setPreviewHoveredUrl(targetUrl);
+                                setPreviewHoveredFocal(item.focalPoint || "center");
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "14px",
+                                padding: "7px 0",
+                                borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+                                cursor: "pointer",
+                                color: previewHoveredUrl === targetUrl ? "#b36f55" : "rgba(255, 255, 255, 0.9)",
+                              }}
+                              tabIndex={0}
+                            >
+                              <span style={{ fontSize: "16px" }}>
+                                {item.labelEn || "Untitled"}
+                              </span>
+                              <span style={{ fontSize: "13px", opacity: 0.6, marginInlineStart: "auto", direction: "rtl" }}>
+                                {item.labelAr}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview image arch panel */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    height: "340px",
+                    borderRadius: "100px 100px 0 0",
+                    overflow: "hidden",
+                    background: "#e5d6c5",
+                    boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+                  }}
+                >
+                  <Image
+                    src={previewHoveredUrl || defaultMenuUrl}
+                    alt="Navigation preview"
+                    fill
+                    style={{
+                      objectFit: "cover",
+                      objectPosition: previewHoveredFocal || defaultMenuFocal,
+                      transition: "all 0.3s ease",
+                    }}
+                    sizes="30vw"
+                  />
+                </div>
+                <span style={{ marginTop: "10px", fontSize: "11px", color: "rgba(255,255,255,0.6)" }}>
+                  {previewHoveredUrl ? "Previewing assigned link photo" : "Showing global default menu photo"}
+                </span>
+              </div>
+            </div>
+          )}
         </section>
       )}
     </>

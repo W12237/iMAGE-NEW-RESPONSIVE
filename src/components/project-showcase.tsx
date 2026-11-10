@@ -3,8 +3,9 @@
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HomeContent } from "@/content/home";
+import { getFluidTypographyStyle } from "@/lib/typography";
 import { useEnquiryModal } from "./enquiry-provider";
 
 // Canonical location definitions for Image Developments portfolio
@@ -50,7 +51,7 @@ export const CANONICAL_LOCATIONS: CanonicalLocation[] = [
 
 /**
  * Resolves a project's location fields into a stable canonical ID,
- * filtering out bare street addresses (axes, roads) without inventing fake categories.
+ * avoiding reliance on translated text comparisons.
  */
 export function resolveProjectLocationId(p: {
   location?: string;
@@ -65,7 +66,7 @@ export function resolveProjectLocationId(p: {
     }
   }
 
-  // If not matching canonical, but has a valid location name (not a pure street address with axis/road/محور/شارع)
+  // If not matching canonical, but has a valid location name (not a pure street address)
   const isStreetAddress = /(axis|street|st\.|road|محور|شارع)/i.test(text);
   if (!isStreetAddress && (p.locationEn || p.location)) {
     const raw = (p.locationEn || p.location || "").trim();
@@ -77,7 +78,7 @@ export function resolveProjectLocationId(p: {
   return null;
 }
 
-// Project Types
+// Project Types & Statuses (retained for badges and dedicated projects page)
 export const PROJECT_TYPES = [
   { id: "ALL", labelEn: "All Types", labelAr: "كافة الأنواع" },
   { id: "Residential", labelEn: "Residential", labelAr: "سكني" },
@@ -85,7 +86,6 @@ export const PROJECT_TYPES = [
   { id: "Medical", labelEn: "Medical", labelAr: "طبي" },
 ] as const;
 
-// Project Statuses (delivery/construction progress)
 export const PROJECT_STATUSES = [
   { id: "ALL", labelEn: "All Statuses", labelAr: "كافة الحالات" },
   { id: "Ongoing", labelEn: "Ongoing", labelAr: "قيد التنفيذ" },
@@ -104,8 +104,6 @@ function formatProjectCount(count: number, ar: boolean): string {
   return count === 1 ? "1 Project Available" : `${count} Projects Available`;
 }
 
-type DropdownKey = "location" | "type" | "status";
-
 export function ProjectShowcase({
   copy,
   label,
@@ -115,129 +113,121 @@ export function ProjectShowcase({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<string>("ALL");
-  const [selectedType, setSelectedType] = useState<string>("ALL");
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [activeDropdown, setActiveDropdown] = useState<DropdownKey | null>(null);
   const [announcement, setAnnouncement] = useState<string>("");
-
-  const filterBarRef = useRef<HTMLDivElement>(null);
-  const triggerRefs = {
-    location: useRef<HTMLButtonElement>(null),
-    type: useRef<HTMLButtonElement>(null),
-    status: useRef<HTMLButtonElement>(null),
-  };
-  const listboxRefs = {
-    location: useRef<HTMLDivElement>(null),
-    type: useRef<HTMLDivElement>(null),
-    status: useRef<HTMLDivElement>(null),
-  };
 
   const reduce = useReducedMotion();
   const { openEnquiry } = useEnquiryModal();
 
   const total = copy.projects?.length ?? 0;
   const ar = copy.locale === "ar";
+  const supportedLocale = ar ? "ar" : "en";
   const mediaTouchStart = useRef<{ x: number; y: number } | null>(null);
 
-  // Derive available locations from published projects
-  const availableLocations = useMemo(() => {
+  // Configuration from CMS projectsSection
+  const tagsEnabled = copy.projectsSection?.locationTagsEnabled ?? true;
+  const showTagCounts = copy.projectsSection?.showTagCounts ?? false;
+  const locationOrder = copy.projectsSection?.locationOrder ?? "auto";
+  const visibleLocationsFilter = copy.projectsSection?.visibleLocations;
+
+  const allProjectsLabel =
+    copy.projectsSection?.allLabel ||
+    (ar ? "كافة المشاريع" : "All Projects");
+
+  // Derive distinct eligible locations and project counts from CMS records
+  const { availableLocations, locationCounts } = useMemo(() => {
     const map = new Map<string, { id: string; nameEn: string; nameAr: string }>();
+    const counts = new Map<string, number>();
+
     (copy.projects ?? []).forEach((p) => {
       const locId = resolveProjectLocationId(p);
       if (locId) {
-        const canonical = CANONICAL_LOCATIONS.find((c) => c.id === locId);
-        if (canonical) {
-          map.set(locId, { id: canonical.id, nameEn: canonical.nameEn, nameAr: canonical.nameAr });
-        } else if (!map.has(locId)) {
-          map.set(locId, {
-            id: locId,
-            nameEn: p.locationEn || p.location || locId,
-            nameAr: p.locationAr || p.location || locId,
-          });
+        counts.set(locId, (counts.get(locId) || 0) + 1);
+        if (!map.has(locId)) {
+          const canonical = CANONICAL_LOCATIONS.find((c) => c.id === locId);
+          if (canonical) {
+            map.set(locId, { id: canonical.id, nameEn: canonical.nameEn, nameAr: canonical.nameAr });
+          } else {
+            map.set(locId, {
+              id: locId,
+              nameEn: p.locationEn || p.location || locId,
+              nameAr: p.locationAr || p.location || locId,
+            });
+          }
         }
       }
     });
-    return Array.from(map.values());
-  }, [copy.projects]);
 
-  // Combined AND Filtering Logic
+    let list = Array.from(map.values());
+
+    // Apply manual or visible locations whitelist if configured in CMS
+    if (visibleLocationsFilter && Array.isArray(visibleLocationsFilter) && visibleLocationsFilter.length > 0) {
+      list = list.filter((loc) => visibleLocationsFilter.includes(loc.id));
+      if (locationOrder === "manual") {
+        list.sort((a, b) => {
+          const idxA = visibleLocationsFilter.indexOf(a.id);
+          const idxB = visibleLocationsFilter.indexOf(b.id);
+          return idxA - idxB;
+        });
+      }
+    } else if (locationOrder === "auto") {
+      // Sort by canonical order or highest project count
+      list.sort((a, b) => {
+        const countA = counts.get(a.id) || 0;
+        const countB = counts.get(b.id) || 0;
+        return countB - countA;
+      });
+    }
+
+    return { availableLocations: list, locationCounts: counts };
+  }, [copy.projects, visibleLocationsFilter, locationOrder]);
+
+  // Filtering: Selected location or all
   const filteredProjects = useMemo(() => {
+    if (!tagsEnabled || selectedLocation === "ALL") {
+      return copy.projects ?? [];
+    }
     return (copy.projects ?? []).filter((p) => {
-      // 1. Location match
-      if (selectedLocation !== "ALL") {
-        const locId = resolveProjectLocationId(p);
-        if (locId !== selectedLocation) return false;
-      }
-      // 2. Type match
-      if (selectedType !== "ALL") {
-        const pType = (p.projectType || "Residential").toLowerCase();
-        if (pType !== selectedType.toLowerCase()) return false;
-      }
-      // 3. Status match
-      if (selectedStatus !== "ALL") {
-        const pStatus = (p.progressStatus || "Ongoing").toLowerCase();
-        if (pStatus !== selectedStatus.toLowerCase()) return false;
-      }
-      return true;
+      const locId = resolveProjectLocationId(p);
+      return locId === selectedLocation;
     });
-  }, [copy.projects, selectedLocation, selectedType, selectedStatus]);
+  }, [copy.projects, selectedLocation, tagsEnabled]);
 
-  const hasActiveFilters =
-    selectedLocation !== "ALL" || selectedType !== "ALL" || selectedStatus !== "ALL";
+  // Screen-reader announcement on filter selection
+  const handleSelectLocation = useCallback(
+    (locId: string, locName: string) => {
+      setSelectedLocation(locId);
+      setActiveIndex(0);
+      const isAll = locId === "ALL";
+      const count = isAll ? total : (locationCounts.get(locId) || 0);
+      const msg = ar
+        ? `تم اختيار ${locName}. ${formatProjectCount(count, true)}`
+        : `Selected ${locName}. ${formatProjectCount(count, false)}`;
+      setAnnouncement(msg);
+    },
+    [ar, total, locationCounts]
+  );
 
-  // Reset all filters
   const handleResetFilters = useCallback(() => {
     setSelectedLocation("ALL");
-    setSelectedType("ALL");
-    setSelectedStatus("ALL");
     setActiveIndex(0);
-    setActiveDropdown(null);
     setAnnouncement(
       ar
-        ? "تمت إعادة ضبط جميع الفلاتر وعرض كافة المشاريع"
-        : "Filters reset. Showing all projects."
+        ? "تمت إعادة ضبط الفلتر وعرض كافة المشاريع"
+        : "Filter reset. Showing all projects."
     );
   }, [ar]);
 
-  // Handle outside click to close dropdowns
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
-      if (
-        filterBarRef.current &&
-        !filterBarRef.current.contains(e.target as Node)
-      ) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    document.addEventListener("touchstart", handleOutsideClick);
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("touchstart", handleOutsideClick);
-    };
-  }, []);
-
-  // Handle Escape key to close open dropdown
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeDropdown) {
-        e.preventDefault();
-        const currentDropdown = activeDropdown;
-        setActiveDropdown(null);
-        triggerRefs[currentDropdown]?.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeDropdown]);
-
-  // Announce polite screen reader update when filter results change
-  useEffect(() => {
-    const msg = formatProjectCount(filteredProjects.length, ar);
-    setAnnouncement(msg);
-  }, [filteredProjects.length, ar]);
-
   if (!total) return null;
+
+  // Typography tokens resolved from CMS
+  const typo = copy.typography?.home_projects || copy.typography?.global;
+  const sectionTitleStyle = typo?.sectionHeading ? getFluidTypographyStyle(typo.sectionHeading, supportedLocale) : undefined;
+  const kickerStyle = typo?.meta ? getFluidTypographyStyle(typo.meta, supportedLocale) : undefined;
+  const descStyle = typo?.body ? getFluidTypographyStyle(typo.body, supportedLocale) : undefined;
+  const tagStyle = typo?.tag ? getFluidTypographyStyle(typo.tag, supportedLocale) : undefined;
+  const cardTitleStyle = typo?.cardTitle ? getFluidTypographyStyle(typo.cardTitle, supportedLocale) : undefined;
+  const cardPromiseStyle = typo?.body ? getFluidTypographyStyle(typo.body, supportedLocale) : undefined;
+  const badgeStyle = typo?.meta ? getFluidTypographyStyle(typo.meta, supportedLocale) : undefined;
 
   const sectionKicker = label || copy.projectsSection?.heading || copy.common.projects;
   const sectionTitle = copy.projectsSection?.heading || label || copy.common.projects;
@@ -245,15 +235,6 @@ export function ProjectShowcase({
   const exploreLabel = copy.projectsSection?.exploreLabel || copy.common.explore;
   const enquireLabel = copy.projectsSection?.enquireLabel || (ar ? "استفسر الآن" : "Enquire");
   const viewAllLabel = copy.projectsSection?.viewAllLabel || (ar ? "جميع المشاريع" : "View All Projects");
-
-  const locationFilterLabel =
-    copy.projectsSection?.locationFilterLabel || (ar ? "الموقع" : "Location");
-  const typeFilterLabel =
-    copy.projectsSection?.typeFilterLabel || (ar ? "نوع المشروع" : "Project Type");
-  const statusFilterLabel =
-    copy.projectsSection?.statusFilterLabel || (ar ? "حالة المشروع" : "Project Status");
-  const resetFilterLabel =
-    copy.projectsSection?.resetFilterLabel || (ar ? "إعادة ضبط الفلاتر" : "Reset Filters");
 
   const spacing = copy.projectsSection?.spacing || "standard";
   const theme = copy.projectsSection?.theme || "light";
@@ -292,34 +273,6 @@ export function ProjectShowcase({
     });
   };
 
-  // Selected value display strings
-  const selectedLocationDisplay =
-    selectedLocation === "ALL"
-      ? ar
-        ? "كافة المواقع"
-        : "All Locations"
-      : availableLocations.find((l) => l.id === selectedLocation)?.[
-          ar ? "nameAr" : "nameEn"
-        ] || selectedLocation;
-
-  const selectedTypeDisplay =
-    selectedType === "ALL"
-      ? ar
-        ? "كافة الأنواع"
-        : "All Types"
-      : PROJECT_TYPES.find((t) => t.id.toLowerCase() === selectedType.toLowerCase())?.[
-          ar ? "labelAr" : "labelEn"
-        ] || selectedType;
-
-  const selectedStatusDisplay =
-    selectedStatus === "ALL"
-      ? ar
-        ? "كافة الحالات"
-        : "All Statuses"
-      : PROJECT_STATUSES.find(
-          (s) => s.id.toLowerCase() === selectedStatus.toLowerCase()
-        )?.[ar ? "labelAr" : "labelEn"] || selectedStatus;
-
   // Active project badge labels (localized)
   const projectTypeBadge = activeProject?.projectType
     ? PROJECT_TYPES.find(
@@ -343,39 +296,6 @@ export function ProjectShowcase({
       ? `rgb(${copy.backgrounds.projects})`
       : undefined;
 
-  // Keyboard navigation within listbox items
-  const handleListboxKeyDown = (
-    e: React.KeyboardEvent,
-    dropdownKey: DropdownKey,
-    optionsLength: number
-  ) => {
-    const listbox = listboxRefs[dropdownKey].current;
-    if (!listbox) return;
-
-    const items = Array.from(
-      listbox.querySelectorAll<HTMLButtonElement>('[role="option"]')
-    );
-    const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const nextIndex = (currentIndex + 1) % optionsLength;
-      items[nextIndex]?.focus();
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const prevIndex = (currentIndex - 1 + optionsLength) % optionsLength;
-      items[prevIndex]?.focus();
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      items[0]?.focus();
-    } else if (e.key === "End") {
-      e.preventDefault();
-      items[optionsLength - 1]?.focus();
-    } else if (e.key === "Tab") {
-      setActiveDropdown(null);
-    }
-  };
-
   return (
     <section
       id="projects"
@@ -396,13 +316,13 @@ export function ProjectShowcase({
         <header className="featured-projects-head">
           <div className="featured-projects-head-text">
             <div className="featured-projects-kicker">
-              <span>{sectionKicker}</span>
+              <span style={kickerStyle}>{sectionKicker}</span>
             </div>
-            <h2 id="featured-projects-title" className="featured-projects-title">
+            <h2 id="featured-projects-title" className="featured-projects-title" style={sectionTitleStyle}>
               {sectionTitle}
             </h2>
             {sectionDesc && (
-              <p className="featured-projects-desc">{sectionDesc}</p>
+              <p className="featured-projects-desc" style={descStyle}>{sectionDesc}</p>
             )}
           </div>
 
@@ -416,447 +336,59 @@ export function ProjectShowcase({
           </Link>
         </header>
 
-        {/* Professional 3-Field Architectural Filter Bar */}
-        <div className="homepage-filter-wrapper" ref={filterBarRef}>
-          <div
-            className="homepage-filter-bar"
-            role="region"
-            aria-label={ar ? "تصفية المشاريع" : "Filter projects"}
-          >
-            {/* 1. Location / الموقع */}
-            <div className="homepage-filter-segment">
+        {/* Compact Location Tags Bar */}
+        {tagsEnabled && availableLocations.length > 0 && (
+          <div className="homepage-location-tags-wrapper">
+            <div
+              className="homepage-location-tags"
+              role="group"
+              aria-label={ar ? "تصفية المشاريع حسب الموقع" : "Filter projects by location"}
+            >
+              {/* "All Projects" Tag - Always First */}
               <button
-                ref={triggerRefs.location}
                 type="button"
-                id="filter-trigger-location"
-                aria-haspopup="listbox"
-                aria-expanded={activeDropdown === "location"}
-                aria-controls="filter-listbox-location"
-                aria-label={`${locationFilterLabel}: ${selectedLocationDisplay}`}
-                className={`homepage-filter-trigger ${
-                  selectedLocation !== "ALL" ? "has-value" : ""
-                } ${activeDropdown === "location" ? "is-active" : ""}`}
-                onClick={() =>
-                  setActiveDropdown((prev) => (prev === "location" ? null : "location"))
-                }
+                role="button"
+                aria-pressed={selectedLocation === "ALL"}
+                className={`location-tag ${selectedLocation === "ALL" ? "is-active" : ""}`}
+                style={tagStyle}
+                onClick={() => handleSelectLocation("ALL", allProjectsLabel)}
               >
-                {/* Outline Icon */}
-                <div className="homepage-filter-icon-box" aria-hidden="true">
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </div>
-
-                {/* Text Block */}
-                <div className="homepage-filter-text">
-                  <span className="homepage-filter-label" id="filter-label-location">
-                    {locationFilterLabel}
+                <span className="location-tag-label">{allProjectsLabel}</span>
+                {showTagCounts && (
+                  <span className="location-tag-count" aria-hidden="true">
+                    {total}
                   </span>
-                  <span className="homepage-filter-value" id="filter-val-location">
-                    {selectedLocationDisplay}
-                  </span>
-                </div>
-
-                {/* Chevron */}
-                <div className="homepage-filter-chevron-wrap" aria-hidden="true">
-                  <svg
-                    className={`homepage-filter-chevron ${
-                      activeDropdown === "location" ? "is-open" : ""
-                    }`}
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
+                )}
               </button>
 
-              {/* Location Listbox Panel */}
-              {activeDropdown === "location" && (
-                <div
-                  ref={listboxRefs.location}
-                  id="filter-listbox-location"
-                  role="listbox"
-                  aria-labelledby="filter-label-location"
-                  className="homepage-filter-dropdown"
-                  onKeyDown={(e) =>
-                    handleListboxKeyDown(e, "location", availableLocations.length + 1)
-                  }
-                >
-                  {/* Option: All Locations */}
+              {/* Location Tags */}
+              {availableLocations.map((loc) => {
+                const isSelected = selectedLocation === loc.id;
+                const locName = ar ? loc.nameAr : loc.nameEn;
+                const count = locationCounts.get(loc.id) || 0;
+
+                return (
                   <button
+                    key={loc.id}
                     type="button"
-                    role="option"
-                    aria-selected={selectedLocation === "ALL"}
-                    className={`homepage-filter-dropdown-item ${
-                      selectedLocation === "ALL" ? "is-selected" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedLocation("ALL");
-                      setActiveIndex(0);
-                      setActiveDropdown(null);
-                      triggerRefs.location.current?.focus();
-                    }}
+                    role="button"
+                    aria-pressed={isSelected}
+                    className={`location-tag ${isSelected ? "is-active" : ""}`}
+                    style={tagStyle}
+                    onClick={() => handleSelectLocation(loc.id, locName)}
                   >
-                    <span>{ar ? "كافة المواقع" : "All Locations"}</span>
-                    {selectedLocation === "ALL" && (
-                      <svg
-                        className="homepage-filter-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                    <span className="location-tag-label">{locName}</span>
+                    {showTagCounts && (
+                      <span className="location-tag-count" aria-hidden="true">
+                        {count}
+                      </span>
                     )}
                   </button>
-
-                  {/* Dynamic Published Location Categories */}
-                  {availableLocations.map((loc) => {
-                    const isSelected = selectedLocation === loc.id;
-                    const locLabel = ar ? loc.nameAr : loc.nameEn;
-                    return (
-                      <button
-                        key={loc.id}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`homepage-filter-dropdown-item ${
-                          isSelected ? "is-selected" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedLocation(loc.id);
-                          setActiveIndex(0);
-                          setActiveDropdown(null);
-                          triggerRefs.location.current?.focus();
-                        }}
-                      >
-                        <span>{locLabel}</span>
-                        {isSelected && (
-                          <svg
-                            className="homepage-filter-check"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* 2. Project Type / نوع المشروع */}
-            <div className="homepage-filter-segment">
-              <button
-                ref={triggerRefs.type}
-                type="button"
-                id="filter-trigger-type"
-                aria-haspopup="listbox"
-                aria-expanded={activeDropdown === "type"}
-                aria-controls="filter-listbox-type"
-                aria-label={`${typeFilterLabel}: ${selectedTypeDisplay}`}
-                className={`homepage-filter-trigger ${
-                  selectedType !== "ALL" ? "has-value" : ""
-                } ${activeDropdown === "type" ? "is-active" : ""}`}
-                onClick={() =>
-                  setActiveDropdown((prev) => (prev === "type" ? null : "type"))
-                }
-              >
-                {/* Outline Icon */}
-                <div className="homepage-filter-icon-box" aria-hidden="true">
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-                    <path d="M9 22v-4h6v4" />
-                    <path
-                      d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"
-                      strokeWidth="2.2"
-                    />
-                  </svg>
-                </div>
-
-                {/* Text Block */}
-                <div className="homepage-filter-text">
-                  <span className="homepage-filter-label" id="filter-label-type">
-                    {typeFilterLabel}
-                  </span>
-                  <span className="homepage-filter-value" id="filter-val-type">
-                    {selectedTypeDisplay}
-                  </span>
-                </div>
-
-                {/* Chevron */}
-                <div className="homepage-filter-chevron-wrap" aria-hidden="true">
-                  <svg
-                    className={`homepage-filter-chevron ${
-                      activeDropdown === "type" ? "is-open" : ""
-                    }`}
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </button>
-
-              {/* Type Listbox Panel */}
-              {activeDropdown === "type" && (
-                <div
-                  ref={listboxRefs.type}
-                  id="filter-listbox-type"
-                  role="listbox"
-                  aria-labelledby="filter-label-type"
-                  className="homepage-filter-dropdown"
-                  onKeyDown={(e) =>
-                    handleListboxKeyDown(e, "type", PROJECT_TYPES.length)
-                  }
-                >
-                  {PROJECT_TYPES.map((t) => {
-                    const isSelected = selectedType.toLowerCase() === t.id.toLowerCase();
-                    const optLabel = ar ? t.labelAr : t.labelEn;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`homepage-filter-dropdown-item ${
-                          isSelected ? "is-selected" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedType(t.id);
-                          setActiveIndex(0);
-                          setActiveDropdown(null);
-                          triggerRefs.type.current?.focus();
-                        }}
-                      >
-                        <span>{optLabel}</span>
-                        {isSelected && (
-                          <svg
-                            className="homepage-filter-check"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* 3. Project Status / حالة المشروع */}
-            <div className="homepage-filter-segment">
-              <button
-                ref={triggerRefs.status}
-                type="button"
-                id="filter-trigger-status"
-                aria-haspopup="listbox"
-                aria-expanded={activeDropdown === "status"}
-                aria-controls="filter-listbox-status"
-                aria-label={`${statusFilterLabel}: ${selectedStatusDisplay}`}
-                className={`homepage-filter-trigger ${
-                  selectedStatus !== "ALL" ? "has-value" : ""
-                } ${activeDropdown === "status" ? "is-active" : ""}`}
-                onClick={() =>
-                  setActiveDropdown((prev) => (prev === "status" ? null : "status"))
-                }
-              >
-                {/* Outline Icon */}
-                <div className="homepage-filter-icon-box" aria-hidden="true">
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                </div>
-
-                {/* Text Block */}
-                <div className="homepage-filter-text">
-                  <span className="homepage-filter-label" id="filter-label-status">
-                    {statusFilterLabel}
-                  </span>
-                  <span className="homepage-filter-value" id="filter-val-status">
-                    {selectedStatusDisplay}
-                  </span>
-                </div>
-
-                {/* Chevron */}
-                <div className="homepage-filter-chevron-wrap" aria-hidden="true">
-                  <svg
-                    className={`homepage-filter-chevron ${
-                      activeDropdown === "status" ? "is-open" : ""
-                    }`}
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </button>
-
-              {/* Status Listbox Panel */}
-              {activeDropdown === "status" && (
-                <div
-                  ref={listboxRefs.status}
-                  id="filter-listbox-status"
-                  role="listbox"
-                  aria-labelledby="filter-label-status"
-                  className="homepage-filter-dropdown"
-                  onKeyDown={(e) =>
-                    handleListboxKeyDown(e, "status", PROJECT_STATUSES.length)
-                  }
-                >
-                  {PROJECT_STATUSES.map((s) => {
-                    const isSelected =
-                      selectedStatus.toLowerCase() === s.id.toLowerCase();
-                    const optLabel = ar ? s.labelAr : s.labelEn;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`homepage-filter-dropdown-item ${
-                          isSelected ? "is-selected" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedStatus(s.id);
-                          setActiveIndex(0);
-                          setActiveDropdown(null);
-                          triggerRefs.status.current?.focus();
-                        }}
-                      >
-                        <span>{optLabel}</span>
-                        {isSelected && (
-                          <svg
-                            className="homepage-filter-check"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
-
-          {/* Results Count & Reset Bar */}
-          <div
-            className="homepage-filter-results"
-            aria-label={ar ? "نتائج التصفية" : "Filter results"}
-          >
-            <div className="homepage-filter-count" aria-live="polite">
-              <span className="count-dot" aria-hidden="true" />
-              <span>{formatProjectCount(filteredProjects.length, ar)}</span>
-            </div>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="btn-homepage-filter-reset"
-                aria-label={resetFilterLabel}
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                  <path d="M3 3v5h5" />
-                </svg>
-                <span>{resetFilterLabel}</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Content Display: Showcase or Empty State */}
         {filteredProjects.length === 0 ? (
@@ -878,19 +410,19 @@ export function ProjectShowcase({
               </svg>
             </div>
             <h3 className="empty-title">
-              {ar ? "لا توجد مشاريع مطابقة" : "No Matching Projects"}
+              {ar ? "لا توجد مشاريع في هذا الموقع" : "No Projects in This Location"}
             </h3>
             <p className="empty-desc">
               {ar
-                ? "لم نجد أي مشروع يطابق معايير التصفية المحددة. يمكنك تعديل الخيارات أو إعادة ضبط الفلاتر لاستعراض كافة مشاريع إيمدج."
-                : "We couldn't find any projects matching your selected criteria. Try adjusting your options or resetting filters to browse all projects."}
+                ? "لا توجد مشاريع منشورة حالياً في الموقع المحدد. يمكنك اختيار موقع آخر أو استعراض كافة المشاريع."
+                : "No projects are currently published for the selected location. Choose another location or view all projects."}
             </p>
             <button
               type="button"
               onClick={handleResetFilters}
               className="btn-featured-secondary"
             >
-              <span>{resetFilterLabel}</span>
+              <span>{allProjectsLabel}</span>
             </button>
           </div>
         ) : (
@@ -965,7 +497,7 @@ export function ProjectShowcase({
             >
               <div className="featured-project-meta">
                 {projectLocationBadge && (
-                  <div className="featured-project-location">
+                  <div className="featured-project-location" style={badgeStyle}>
                     <svg
                       width="14"
                       height="14"
@@ -984,21 +516,21 @@ export function ProjectShowcase({
                   </div>
                 )}
                 {projectTypeBadge && (
-                  <span className="featured-project-type">
+                  <span className="featured-project-type" style={badgeStyle}>
                     {projectTypeBadge}
                   </span>
                 )}
                 {projectStatusBadge && (
-                  <span className="featured-project-type featured-project-status">
+                  <span className="featured-project-type featured-project-status" style={badgeStyle}>
                     {projectStatusBadge}
                   </span>
                 )}
               </div>
 
-              <h3 className="featured-project-name">{activeProject.name}</h3>
+              <h3 className="featured-project-name" style={cardTitleStyle}>{activeProject.name}</h3>
 
               {activeProject.promise && (
-                <p className="featured-project-promise">{activeProject.promise}</p>
+                <p className="featured-project-promise" style={cardPromiseStyle}>{activeProject.promise}</p>
               )}
 
               {/* Actions Row */}

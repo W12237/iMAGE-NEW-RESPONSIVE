@@ -10,6 +10,7 @@ import { loginSchema, newsSchema, projectSchema, safeUrl, sectionOrderSchema } f
 import { parsePageBlocksInput } from "@/lib/page-blocks-input";
 import { BLOCK_PAGES } from "@/lib/page-blocks";
 import { processVisualTourUpload, deleteVisualTourAssets } from "@/lib/tours";
+import { validateTypographyValue, TYPOGRAPHY_ROLES, type TypographyRole } from "@/lib/typography";
 
 const str=(f:FormData,k:string)=>String(f.get(k)??"").trim();
 const bool=(f:FormData,k:string)=>f.get(k)==="on";
@@ -56,7 +57,101 @@ export async function loginAction(_:ActionState, formData:FormData):Promise<Acti
 }
 export async function logoutAction(){await destroySession();redirect("/admin/login");}
 
-export async function saveTypography(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();await saveFontSizes(f);revalidatePath("/", "layout");revalidatePath("/admin/typography");return{success:"Section font sizes saved."};}
+export async function saveTypography(_:ActionState,f:FormData):Promise<ActionState>{
+  await requireAdmin();
+  const rawJson = str(f, "typographyJson");
+  if (!rawJson) {
+    await saveFontSizes(f);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/typography");
+    return { success: "Section font sizes saved." };
+  }
+
+  let data: Array<{
+    sectionKey: string;
+    role: TypographyRole;
+    locale?: string;
+    fontSizeMobile?: number | null;
+    fontSizeDesktop?: number | null;
+    lineHeight?: number | null;
+    fontWeight?: number | null;
+  }>;
+
+  try {
+    data = JSON.parse(rawJson);
+  } catch {
+    return { error: "The submitted typography data is invalid. Refresh and try again." };
+  }
+
+  // Validate each record against safe bounds
+  for (const item of data) {
+    if (!TYPOGRAPHY_ROLES[item.role]) {
+      return { error: `Unrecognized typography role: ${item.role}` };
+    }
+    const err = validateTypographyValue(item.role, {
+      fontSizeMobile: item.fontSizeMobile ?? undefined,
+      fontSizeDesktop: item.fontSizeDesktop ?? undefined,
+      lineHeight: item.lineHeight ?? undefined,
+      fontWeight: item.fontWeight ?? undefined,
+    });
+    if (err) {
+      return { error: err };
+    }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const item of data) {
+        const localeKey = item.locale || "all";
+        const uniqueKey = `${item.sectionKey}:${item.role}:${localeKey}`;
+        
+        const hasValues = 
+          (item.fontSizeMobile !== null && item.fontSizeMobile !== undefined) ||
+          (item.fontSizeDesktop !== null && item.fontSizeDesktop !== undefined) ||
+          (item.lineHeight !== null && item.lineHeight !== undefined) ||
+          (item.fontWeight !== null && item.fontWeight !== undefined);
+
+        if (!hasValues) {
+          await tx.typographySetting.deleteMany({
+            where: { key: uniqueKey },
+          });
+        } else {
+          await tx.typographySetting.upsert({
+            where: { key: uniqueKey },
+            create: {
+              key: uniqueKey,
+              fontSizeMobile: item.fontSizeMobile ? Math.round(item.fontSizeMobile) : null,
+              fontSizeDesktop: item.fontSizeDesktop ? Math.round(item.fontSizeDesktop) : null,
+              lineHeight: item.lineHeight ? Number(item.lineHeight.toFixed(2)) : null,
+              fontWeight: item.fontWeight ? Math.round(item.fontWeight) : null,
+            },
+            update: {
+              fontSizeMobile: item.fontSizeMobile ? Math.round(item.fontSizeMobile) : null,
+              fontSizeDesktop: item.fontSizeDesktop ? Math.round(item.fontSizeDesktop) : null,
+              lineHeight: item.lineHeight ? Number(item.lineHeight.toFixed(2)) : null,
+              fontWeight: item.fontWeight ? Math.round(item.fontWeight) : null,
+            },
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Unable to save typography settings", error);
+    return { error: "Failed to persist typography settings. Please try again." };
+  }
+
+  revalidatePath("/en");
+  revalidatePath("/ar");
+  revalidatePath("/en/projects");
+  revalidatePath("/ar/projects");
+  revalidatePath("/en/journal");
+  revalidatePath("/ar/journal");
+  revalidatePath("/en/about");
+  revalidatePath("/ar/about");
+  revalidatePath("/admin/typography");
+  revalidatePath("/", "layout");
+  return { success: "Typography settings saved and published successfully." };
+}
 
 export async function savePageSections(_:ActionState,f:FormData):Promise<ActionState>{
   await requireAdmin();
@@ -83,7 +178,7 @@ export async function saveHomepage(_:ActionState, f:FormData):Promise<ActionStat
   const order=str(f,"sectionOrder").split(",").map(x=>x.trim()).filter(x=>["projects","lifestyle","stats","journal","closing"].includes(x));
   if(!sectionOrderSchema.safeParse(order).success)return {error:"Section order must contain each supported section exactly once."};
   await prisma.homepage.update({where:{id:"homepage"},data:colors});
-  await prisma.homepage.update({where:{id:"homepage"},data:{heroEnabled:bool(f,"heroEnabled"),heroEyebrowEn:str(f,"heroEyebrowEn"),heroEyebrowAr:str(f,"heroEyebrowAr"),heroTitleEn:str(f,"heroTitleEn"),heroTitleAr:str(f,"heroTitleAr"),heroNoteEn:str(f,"heroNoteEn"),heroNoteAr:str(f,"heroNoteAr"),heroDiscoverEn:str(f,"heroDiscoverEn"),heroDiscoverAr:str(f,"heroDiscoverAr"),heroMediaUrl:str(f,"heroMediaUrl"),heroMediaAltEn:str(f,"heroMediaAltEn"),heroMediaAltAr:str(f,"heroMediaAltAr"),projectsEnabled:bool(f,"projectsEnabled"),projectsHeadingEn:str(f,"projectsHeadingEn"),projectsHeadingAr:str(f,"projectsHeadingAr"),projectsDescriptionEn:str(f,"projectsDescriptionEn")||null,projectsDescriptionAr:str(f,"projectsDescriptionAr")||null,projectsExploreEn:str(f,"projectsExploreEn"),projectsExploreAr:str(f,"projectsExploreAr"),projectsEnquireEn:str(f,"projectsEnquireEn")||"Enquire",projectsEnquireAr:str(f,"projectsEnquireAr")||"استفسر الآن",projectsViewAllEn:str(f,"projectsViewAllEn")||"View All Projects",projectsViewAllAr:str(f,"projectsViewAllAr")||"جميع المشاريع",projectsSpacing:str(f,"projectsSpacing")||"standard",projectsTheme:str(f,"projectsTheme")||"light",projectsImagePosition:str(f,"projectsImagePosition")||"start",lifestyleEnabled:bool(f,"lifestyleEnabled"),lifestyleEyebrowEn:str(f,"lifestyleEyebrowEn"),lifestyleEyebrowAr:str(f,"lifestyleEyebrowAr"),lifestyleTitleEn:str(f,"lifestyleTitleEn"),lifestyleTitleAr:str(f,"lifestyleTitleAr"),lifestyleMediaUrl:str(f,"lifestyleMediaUrl"),lifestyleMediaAltEn:str(f,"lifestyleMediaAltEn"),lifestyleMediaAltAr:str(f,"lifestyleMediaAltAr"),lifestyleCtaLabelEn:str(f,"lifestyleCtaLabelEn")||"Discover Our Story",lifestyleCtaLabelAr:str(f,"lifestyleCtaLabelAr")||"اكتشف قصتنا",lifestyleCtaUrl:str(f,"lifestyleCtaUrl")||"/about",statsEnabled:bool(f,"statsEnabled"),statsLabelEn:str(f,"statsLabelEn")||null,statsLabelAr:str(f,"statsLabelAr")||null,statsHeadingEn:str(f,"statsHeadingEn")||"Stories, ideas, and updates.",statsHeadingAr:str(f,"statsHeadingAr")||"قصص وأفكار ومستجدات",statsDescriptionEn:str(f,"statsDescriptionEn")||null,statsDescriptionAr:str(f,"statsDescriptionAr")||null,statsImageUrl:str(f,"statsImageUrl")||null,statsImageAltEn:str(f,"statsImageAltEn")||"Image Developments architecture",statsImageAltAr:str(f,"statsImageAltAr")||"العمارة المعاصرة في إيمدج للتطوير العقاري",statsImageFocalPoint:str(f,"statsImageFocalPoint")||"center",statsCtaLabelEn:str(f,"statsCtaLabelEn")||"View All Articles",statsCtaLabelAr:str(f,"statsCtaLabelAr")||"عرض جميع المقالات",statsCtaUrl:str(f,"statsCtaUrl")||"/journal",statsJournalMode:str(f,"statsJournalMode")||"AUTO",statsJournalCategory:str(f,"statsJournalCategory")||"ALL",statsJournalCount:parseInt(str(f,"statsJournalCount")||"3",10)||3,statsJournalArticleIds:str(f,"statsJournalArticleIds")||"[]",journalEnabled:bool(f,"journalEnabled"),journalEyebrowEn:str(f,"journalEyebrowEn"),journalEyebrowAr:str(f,"journalEyebrowAr"),journalTitleEn:str(f,"journalTitleEn"),journalTitleAr:str(f,"journalTitleAr"),closingEnabled:bool(f,"closingEnabled"),closingEyebrowEn:str(f,"closingEyebrowEn"),closingEyebrowAr:str(f,"closingEyebrowAr"),closingTitleEn:str(f,"closingTitleEn"),closingTitleAr:str(f,"closingTitleAr"),closingDescriptionEn:str(f,"closingDescriptionEn")||null,closingDescriptionAr:str(f,"closingDescriptionAr")||null,closingFormHeadingEn:str(f,"closingFormHeadingEn")||null,closingFormHeadingAr:str(f,"closingFormHeadingAr")||null,closingSubmitLabelEn:str(f,"closingSubmitLabelEn")||null,closingSubmitLabelAr:str(f,"closingSubmitLabelAr")||null,closingSuccessMessageEn:str(f,"closingSuccessMessageEn")||null,closingSuccessMessageAr:str(f,"closingSuccessMessageAr")||null,closingCtaEn:str(f,"closingCtaEn"),closingCtaAr:str(f,"closingCtaAr"),closingCtaUrl:str(f,"closingCtaUrl"),sectionOrder:JSON.stringify(order)}});
+  await prisma.homepage.update({where:{id:"homepage"},data:{heroEnabled:bool(f,"heroEnabled"),heroEyebrowEn:str(f,"heroEyebrowEn"),heroEyebrowAr:str(f,"heroEyebrowAr"),heroTitleEn:str(f,"heroTitleEn"),heroTitleAr:str(f,"heroTitleAr"),heroNoteEn:str(f,"heroNoteEn"),heroNoteAr:str(f,"heroNoteAr"),heroDiscoverEn:str(f,"heroDiscoverEn"),heroDiscoverAr:str(f,"heroDiscoverAr"),heroMediaUrl:str(f,"heroMediaUrl"),heroMediaAltEn:str(f,"heroMediaAltEn"),heroMediaAltAr:str(f,"heroMediaAltAr"),projectsEnabled:bool(f,"projectsEnabled"),projectsHeadingEn:str(f,"projectsHeadingEn"),projectsHeadingAr:str(f,"projectsHeadingAr"),projectsDescriptionEn:str(f,"projectsDescriptionEn")||null,projectsDescriptionAr:str(f,"projectsDescriptionAr")||null,projectsExploreEn:str(f,"projectsExploreEn"),projectsExploreAr:str(f,"projectsExploreAr"),projectsEnquireEn:str(f,"projectsEnquireEn")||"Enquire",projectsEnquireAr:str(f,"projectsEnquireAr")||"استفسر الآن",projectsViewAllEn:str(f,"projectsViewAllEn")||"View All Projects",projectsViewAllAr:str(f,"projectsViewAllAr")||"جميع المشاريع",projectsSpacing:str(f,"projectsSpacing")||"standard",projectsTheme:str(f,"projectsTheme")||"light",projectsImagePosition:str(f,"projectsImagePosition")||"start",projectsLocationTagsEnabled:bool(f,"projectsLocationTagsEnabled"),projectsAllLabelEn:str(f,"projectsAllLabelEn")||"All Projects",projectsAllLabelAr:str(f,"projectsAllLabelAr")||"كافة المشاريع",projectsShowTagCounts:bool(f,"projectsShowTagCounts"),projectsLocationOrder:str(f,"projectsLocationOrder")||"auto",projectsVisibleLocations:(()=>{const visible=f.getAll("projectsVisibleLocation").map(String);return visible.length>0?JSON.stringify(visible):null;})(),lifestyleEnabled:bool(f,"lifestyleEnabled"),lifestyleEyebrowEn:str(f,"lifestyleEyebrowEn"),lifestyleEyebrowAr:str(f,"lifestyleEyebrowAr"),lifestyleTitleEn:str(f,"lifestyleTitleEn"),lifestyleTitleAr:str(f,"lifestyleTitleAr"),lifestyleMediaUrl:str(f,"lifestyleMediaUrl"),lifestyleMediaAltEn:str(f,"lifestyleMediaAltEn"),lifestyleMediaAltAr:str(f,"lifestyleMediaAltAr"),lifestyleCtaLabelEn:str(f,"lifestyleCtaLabelEn")||"Discover Our Story",lifestyleCtaLabelAr:str(f,"lifestyleCtaLabelAr")||"اكتشف قصتنا",lifestyleCtaUrl:str(f,"lifestyleCtaUrl")||"/about",statsEnabled:bool(f,"statsEnabled"),statsLabelEn:str(f,"statsLabelEn")||null,statsLabelAr:str(f,"statsLabelAr")||null,statsHeadingEn:str(f,"statsHeadingEn")||"Stories, ideas, and updates.",statsHeadingAr:str(f,"statsHeadingAr")||"قصص وأفكار ومستجدات",statsDescriptionEn:str(f,"statsDescriptionEn")||null,statsDescriptionAr:str(f,"statsDescriptionAr")||null,statsImageUrl:str(f,"statsImageUrl")||null,statsImageAltEn:str(f,"statsImageAltEn")||"Image Developments architecture",statsImageAltAr:str(f,"statsImageAltAr")||"العمارة المعاصرة في إيمدج للتطوير العقاري",statsImageFocalPoint:str(f,"statsImageFocalPoint")||"center",statsCtaLabelEn:str(f,"statsCtaLabelEn")||"View All Articles",statsCtaLabelAr:str(f,"statsCtaLabelAr")||"عرض جميع المقالات",statsCtaUrl:str(f,"statsCtaUrl")||"/journal",statsJournalMode:str(f,"statsJournalMode")||"AUTO",statsJournalCategory:str(f,"statsJournalCategory")||"ALL",statsJournalCount:parseInt(str(f,"statsJournalCount")||"3",10)||3,statsJournalArticleIds:str(f,"statsJournalArticleIds")||"[]",journalEnabled:bool(f,"journalEnabled"),journalEyebrowEn:str(f,"journalEyebrowEn"),journalEyebrowAr:str(f,"journalEyebrowAr"),journalTitleEn:str(f,"journalTitleEn"),journalTitleAr:str(f,"journalTitleAr"),closingEnabled:bool(f,"closingEnabled"),closingEyebrowEn:str(f,"closingEyebrowEn"),closingEyebrowAr:str(f,"closingEyebrowAr"),closingTitleEn:str(f,"closingTitleEn"),closingTitleAr:str(f,"closingTitleAr"),closingDescriptionEn:str(f,"closingDescriptionEn")||null,closingDescriptionAr:str(f,"closingDescriptionAr")||null,closingFormHeadingEn:str(f,"closingFormHeadingEn")||null,closingFormHeadingAr:str(f,"closingFormHeadingAr")||null,closingSubmitLabelEn:str(f,"closingSubmitLabelEn")||null,closingSubmitLabelAr:str(f,"closingSubmitLabelAr")||null,closingSuccessMessageEn:str(f,"closingSuccessMessageEn")||null,closingSuccessMessageAr:str(f,"closingSuccessMessageAr")||null,closingCtaEn:str(f,"closingCtaEn"),closingCtaAr:str(f,"closingCtaAr"),closingCtaUrl:str(f,"closingCtaUrl"),sectionOrder:JSON.stringify(order)}});
   await prisma.homepage.update({where:{id:"homepage"},data:{openingEnabled:bool(f,"openingEnabled"),openingHeadlineEn:str(f,"openingHeadlineEn"),openingHeadlineAr:str(f,"openingHeadlineAr"),openingVideoDesktopUrl:str(f,"openingVideoDesktopUrl")||null,openingVideoMobileUrl:str(f,"openingVideoMobileUrl")||null,openingPosterUrl:str(f,"openingPosterUrl")||null,heroVideoDesktopUrl:str(f,"heroVideoDesktopUrl")||null,heroVideoMobileUrl:str(f,"heroVideoMobileUrl")||null,heroMobileMediaUrl:str(f,"heroMobileMediaUrl")||null,heroPosterUrl:str(f,"heroPosterUrl")||null}});
   for(const id of f.getAll("statId").map(String)){
     const isVisible = f.has(`statVisible_${id}`) ? bool(f, `statVisible_${id}`) : true;
@@ -974,6 +1069,7 @@ export async function saveNavigation(_: ActionState, f: FormData): Promise<Actio
     labelAr: str(f, `labelAr_${id}`),
     url: str(f, `url_${id}`),
     visible: bool(f, `visible_${id}`),
+    mobileVisible: f.has(`mobileVisible_${id}`) ? bool(f, `mobileVisible_${id}`) : true,
     external: bool(f, `external_${id}`),
     group: str(f, `group_${id}`) || "primary",
     previewImageUrl: str(f, `previewImageUrl_${id}`) || null,
@@ -1015,6 +1111,7 @@ export async function saveNavigation(_: ActionState, f: FormData): Promise<Actio
         labelAr: item.labelAr,
         url: item.url,
         visible: item.visible,
+        mobileVisible: item.mobileVisible,
         external: item.external,
         group: item.group,
         previewImageUrl: item.previewImageUrl,

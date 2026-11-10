@@ -245,8 +245,12 @@ export function SiteHeader({
     }
   };
 
-  const primaryNav = copy.nav?.filter(item => (item.group || "primary") === "primary") || [];
-  const secondaryNav = copy.nav?.filter(item => item.group === "secondary") || [];
+  const desktopItems = copy.nav?.filter((item) => item.visible !== false) || [];
+  const primaryNav = desktopItems.filter((item) => (item.group || "primary") === "primary");
+  const secondaryNav = desktopItems.filter((item) => item.group === "secondary");
+
+  // On mobile view, all customizable links configured for mobile appear directly
+  const mobileNav = copy.nav?.filter((item) => item.mobileVisible !== false) || [];
 
   const renderNavItem = (item: NavItemContent, i: number, isSecondary = false) => {
     const resolved = resolveHref(item.href, item.external);
@@ -267,7 +271,6 @@ export function SiteHeader({
 
     const contentMarkup = (
       <>
-        <span className="menu-nav-idx">{String(i + 1).padStart(2, "0")}</span>
         <span className="menu-nav-label">{item.label}</span>
         {isActive && <span className="menu-nav-current-dot" aria-hidden="true" />}
       </>
@@ -446,54 +449,62 @@ export function SiteHeader({
                   aria-label="Main navigation"
                   onMouseLeave={onNavMouseLeave}
                 >
-                  {/* Primary Links */}
-                  {primaryNav.map((item, i) => renderNavItem(item, i, false))}
+                  {/* Mobile Navigation List: Displays ALL mobileVisible links directly */}
+                  <div className="menu-nav-mobile-list">
+                    {mobileNav.map((item, i) =>
+                      renderNavItem(item, i, item.group === "secondary")
+                    )}
+                  </div>
 
-                  {/* Expandable Secondary "More Pages" Group */}
-                  {secondaryNav.length > 0 && (
-                    <div className="menu-more-wrap">
-                      <button
-                        type="button"
-                        className="menu-more-button"
-                        aria-expanded={isMoreOpen}
-                        aria-controls="menu-secondary-nav"
-                        onClick={() => setIsMoreOpen((v) => !v)}
-                      >
-                        <span>{copy.locale === "ar" ? "المزيد من الصفحات" : "More Pages"}</span>
-                        <svg
-                          className={`menu-more-chevron ${isMoreOpen ? "is-expanded" : ""}`}
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
+                  {/* Desktop Navigation List: Primary links + expandable Secondary links */}
+                  <div className="menu-nav-desktop-list">
+                    {primaryNav.map((item, i) => renderNavItem(item, i, false))}
+
+                    {secondaryNav.length > 0 && (
+                      <div className="menu-more-wrap">
+                        <button
+                          type="button"
+                          className="menu-more-button"
+                          aria-expanded={isMoreOpen}
+                          aria-controls="menu-secondary-nav"
+                          onClick={() => setIsMoreOpen((v) => !v)}
                         >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {isMoreOpen && (
-                          <motion.div
-                            id="menu-secondary-nav"
-                            className="menu-secondary-list"
-                            initial={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
-                            animate={reduce ? { opacity: 1 } : { height: "auto", opacity: 1 }}
-                            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
-                            transition={{ duration: reduce ? 0 : 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+                          <span>{copy.locale === "ar" ? "المزيد من الصفحات" : "More Pages"}</span>
+                          <svg
+                            className={`menu-more-chevron ${isMoreOpen ? "is-expanded" : ""}`}
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
                           >
-                            {secondaryNav.map((item, idx) =>
-                              renderNavItem(item, primaryNav.length + idx, true)
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {isMoreOpen && (
+                            <motion.div
+                              id="menu-secondary-nav"
+                              className="menu-secondary-list"
+                              initial={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                              animate={reduce ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+                              exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                              transition={{ duration: reduce ? 0 : 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+                            >
+                              {secondaryNav.map((item, idx) =>
+                                renderNavItem(item, primaryNav.length + idx, true)
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+                  </div>
                 </nav>
 
                 {/* Arched Architectural Menu Image Preview Panel with Smooth Restrained Crossfade */}

@@ -156,6 +156,12 @@ model Homepage {
   projectsSpacing        String              @default("standard")
   projectsTheme          String              @default("light")
   projectsImagePosition  String              @default("start")
+  projectsLocationTagsEnabled Boolean             @default(true)
+  projectsAllLabelEn          String              @default("All Projects")
+  projectsAllLabelAr          String              @default("كافة المشاريع")
+  projectsShowTagCounts       Boolean             @default(false)
+  projectsLocationOrder       String              @default("auto") // "auto" or "manual"
+  projectsVisibleLocations    String?             // JSON array of location IDs, e.g. '["new-cairo","new-zayed"]'
 
   projectsHeroEnabled        Boolean             @default(true)
   projectsHeroEyebrowEn      String              @default("Image Portfolio")
@@ -665,6 +671,7 @@ model NavigationItem {
   labelAr           String
   url               String
   visible           Boolean @default(true)
+  mobileVisible     Boolean @default(true)
   external          Boolean @default(false)
   sortOrder         Int     @default(0)
   group             String  @default("primary")
@@ -780,9 +787,13 @@ model MediaAsset {
 }
 
 model TypographySetting {
-  key       String   @id
-  fontSize  Int
-  updatedAt DateTime @default(now()) @updatedAt
+  key             String   @id
+  fontSize        Int      @default(16)
+  fontSizeMobile  Int?
+  fontSizeDesktop Int?
+  lineHeight      Float?
+  fontWeight      Int?
+  updatedAt       DateTime @default(now()) @updatedAt
 }
 
 model PolicyPage {

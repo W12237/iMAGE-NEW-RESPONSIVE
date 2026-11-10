@@ -11,6 +11,8 @@ export type NavItemContent = {
   previewImage?: string;
   previewImageAr?: string;
   focalPoint?: string;
+  visible?: boolean;
+  mobileVisible?: boolean;
 };
 
 export type HomeContent = {
@@ -52,6 +54,11 @@ export type HomeContent = {
     typeFilterLabel?: string;
     statusFilterLabel?: string;
     resetFilterLabel?: string;
+    locationTagsEnabled?: boolean;
+    allLabel?: string;
+    showTagCounts?: boolean;
+    locationOrder?: "auto" | "manual";
+    visibleLocations?: string[];
   };
   inquiryProjects: { id: string; name: string }[];
   openingProjects?: { name: string; location: string; image: string }[];
@@ -73,6 +80,7 @@ export type HomeContent = {
     url?: string;
   };
   visibility?: { projects: boolean; stats: boolean }; sectionOrder?: string[];
+  typography?: Record<string, Record<string, import("@/lib/typography").ResolvedTypography>>;
   settings?: {
     email: string;
     phone: string;

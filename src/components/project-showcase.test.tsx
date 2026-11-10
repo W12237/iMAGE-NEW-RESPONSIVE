@@ -137,6 +137,10 @@ function getMockHomeContent(locale: "en" | "ar" = "en", overrides: Partial<HomeC
       typeFilterLabel: ar ? "نوع المشروع" : "Project Type",
       statusFilterLabel: ar ? "حالة المشروع" : "Project Status",
       resetFilterLabel: ar ? "إعادة ضبط الفلاتر" : "Reset Filters",
+      locationTagsEnabled: true,
+      allLabel: ar ? "كافة المشاريع" : "All Projects",
+      showTagCounts: false,
+      locationOrder: "auto",
     },
     inquiryProjects: [
       { id: "p1", name: ar ? "إيرا" : "Aera" },
@@ -178,8 +182,8 @@ describe("resolveProjectLocationId", () => {
   });
 });
 
-describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
-  it("renders the 3-field filter bar in English with default values and correct structure", () => {
+describe("ProjectShowcase Component - Location Tags Bar & Card Layout", () => {
+  it("renders the location tags bar in English with 'All Projects' first and active", () => {
     const copy = getMockHomeContent("en");
     const html = renderToStaticMarkup(
       <EnquiryProvider copy={copy}>
@@ -187,39 +191,35 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
       </EnquiryProvider>
     );
 
-    // 1. Structure: One white container with 3 segments
-    expect(html).toContain('class="homepage-filter-bar"');
-    expect(html).toContain('id="filter-trigger-location"');
-    expect(html).toContain('id="filter-trigger-type"');
-    expect(html).toContain('id="filter-trigger-status"');
+    // 1. Structure: Location tags container with group role
+    expect(html).toContain('class="homepage-location-tags"');
+    expect(html).toContain('role="group"');
 
-    // 2. Field Labels
-    expect(html).toContain("Location");
-    expect(html).toContain("Project Type");
-    expect(html).toContain("Project Status");
+    // 2. "All Projects" tag is first and initially active (aria-pressed="true")
+    expect(html).toContain("All Projects");
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("location-tag is-active");
 
-    // 3. Default Values
-    expect(html).toContain("All Locations");
-    expect(html).toContain("All Types");
-    expect(html).toContain("All Statuses");
+    // 3. Distinct location tags present
+    expect(html).toContain("New Cairo");
+    expect(html).toContain("New Zayed");
+    expect(html).toContain("North Coast");
+    expect(html).toContain("6th of October");
 
-    // 4. Result Count
-    expect(html).toContain("4 Projects Available");
-
-    // 5. Active Project Display
+    // 4. Active Project Details Display
     expect(html).toContain("Aera");
     expect(html).toContain("A quieter expression of city life");
     expect(html).toContain("Explore the place");
     expect(html).toContain("Enquire");
     expect(html).toContain("Brochure");
 
-    // 6. Enquiry Attributes on Project context
+    // 5. Enquiry Attributes on Project context
     expect(html).toContain('data-enquiry-trigger="true"');
     expect(html).toContain('data-project-id="p1"');
     expect(html).toContain('data-project-name="Aera"');
   });
 
-  it("renders the 3-field filter bar in Arabic with complete localization and no English leakage", () => {
+  it("renders the location tags bar in Arabic with complete localization and no English leakage", () => {
     const copy = getMockHomeContent("ar");
     const html = renderToStaticMarkup(
       <EnquiryProvider copy={copy}>
@@ -227,22 +227,18 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
       </EnquiryProvider>
     );
 
-    // Arabic Field Labels
-    expect(html).toContain("الموقع");
-    expect(html).toContain("نوع المشروع");
-    expect(html).toContain("حالة المشروع");
+    // Arabic All Projects tag
+    expect(html).toContain("كافة المشاريع");
+    expect(html).toContain('aria-pressed="true"');
 
-    // Arabic Default Values
-    expect(html).toContain("كافة المواقع");
-    expect(html).toContain("كافة الأنواع");
-    expect(html).toContain("كافة الحالات");
-
-    // Arabic Result Count
-    expect(html).toContain("4 مشاريع متاحة");
+    // Arabic Location tags
+    expect(html).toContain("القاهرة الجديدة");
+    expect(html).toContain("زايد الجديدة");
+    expect(html).toContain("الساحل الشمالي");
+    expect(html).toContain("السادس من أكتوبر");
 
     // Localized project details
     expect(html).toContain("إيرا");
-    expect(html).toContain("القاهرة الجديدة");
     expect(html).toContain("سكني"); // Residential localized
     expect(html).toContain("قيد التنفيذ"); // Ongoing localized
     expect(html).toContain("استفسر الآن");
@@ -254,7 +250,27 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
     expect(html).not.toContain('>Ongoing<');
   });
 
-  it("renders empty state correctly when no projects match", () => {
+  it("renders tag counts when showTagCounts is enabled in CMS", () => {
+    const baseContent = getMockHomeContent("en");
+    const copy = getMockHomeContent("en", {
+      projectsSection: {
+        ...baseContent.projectsSection!,
+        showTagCounts: true,
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      <EnquiryProvider copy={copy}>
+        <ProjectShowcase copy={copy} />
+      </EnquiryProvider>
+    );
+
+    expect(html).toContain('class="location-tag-count"');
+    // Total 4 projects count on All Projects tag
+    expect(html).toContain('<span class="location-tag-count" aria-hidden="true">4</span>');
+  });
+
+  it("renders empty state correctly when no projects exist", () => {
     const copy = getMockHomeContent("en", {
       projects: [],
     });
@@ -301,7 +317,6 @@ describe("ProjectShowcase Component - Filter Bar & Card Layout", () => {
     );
 
     expect(html).toContain("Minimal Project");
-    expect(html).toContain("1 Project Available");
     expect(html).not.toContain("btn-featured-brochure");
   });
 });
