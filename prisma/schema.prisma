@@ -16,6 +16,7 @@ enum ContentStatus {
 enum MediaKind {
   IMAGE
   VIDEO
+  DOCUMENT
 }
 
 model AdminUser {
@@ -404,6 +405,7 @@ model Project {
   directionsUrl       String?
   mobileHeroImageUrl  String?
   heroVideoUrl        String?
+  heroVideoPosterUrl  String?
   cardImageUrl        String?
   heroTitleEn         String?
   heroTitleAr         String?
@@ -486,6 +488,9 @@ model ProjectGalleryItem {
   captionAr String?
   altEn     String?
   altAr     String?
+  isVideo   Boolean @default(false)
+  videoUrl  String?
+  posterUrl String?
   sortOrder Int     @default(0)
 
   @@index([projectId, sortOrder])
@@ -775,15 +780,24 @@ model SocialLink {
 }
 
 model MediaAsset {
-  id        String    @id @default(cuid())
-  url       String    @unique
-  filename  String
-  mimeType  String
-  size      Int
-  kind      MediaKind @default(IMAGE)
-  altEn     String?
-  altAr     String?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  url        String    @unique
+  storageKey String?
+  filename   String
+  mimeType   String
+  size       Int
+  kind       MediaKind @default(IMAGE)
+  width      Int?
+  height     Int?
+  duration   Float?
+  posterUrl  String?
+  focalPoint String?   @default("center")
+  altEn      String?
+  altAr      String?
+  captionEn  String?
+  captionAr  String?
+  status     String    @default("READY")
+  createdAt  DateTime  @default(now())
 }
 
 model TypographySetting {

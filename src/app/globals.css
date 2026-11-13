@@ -946,7 +946,36 @@ button {
   font-size: 17px;
   font-weight: 300;
   display: inline-block;
-  transition: transform .28s cubic-bezier(.2, .8, .2, 1)
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+}
+
+.hero-enquire-cta {
+  height: 48px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background-color .28s ease, border-color .28s ease, transform .2s ease;
+  white-space: nowrap;
+}
+
+.hero-enquire-cta:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.hero-enquire-cta:active {
+  transform: scale(.98);
 }
 
 .mm-hero-note {
@@ -4049,7 +4078,7 @@ a.footer-contact-item:hover {
   }
 
   .mm-hero-copy {
-    bottom: calc(clamp(44px, 7vh, 60px) + env(safe-area-inset-bottom, 0px));
+    bottom: calc(clamp(28px, 5.5vh, 48px) + env(safe-area-inset-bottom, 0px));
     inset-inline-end: auto;
     inset-inline-start: var(--pad);
     max-width: calc(100% - (var(--pad) * 2));
@@ -4066,8 +4095,8 @@ a.footer-contact-item:hover {
   }
 
   .mm-hero h1 {
-    font-size: clamp(28px, 7.8vw, 38px);
-    line-height: 1.12;
+    font-size: var(--font-homeHero-mobile, var(--font-home-hero-heroHeading-mobile, clamp(24px, 5.8vw, 32px)));
+    line-height: 1.15;
     letter-spacing: -0.025em;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -4076,7 +4105,7 @@ a.footer-contact-item:hover {
 
   .arabic .mm-hero h1,
   [dir="rtl"] .mm-hero h1 {
-    font-size: clamp(26px, 7.2vw, 35px);
+    font-size: var(--font-homeHero-mobile, var(--font-home-hero-heroHeading-mobile, clamp(22px, 5.4vw, 29px)));
     line-height: 1.32;
     letter-spacing: 0;
     word-break: break-word;
@@ -4088,7 +4117,9 @@ a.footer-contact-item:hover {
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
-    margin-top: clamp(14px, 2.8vh, 20px);
+    margin-top: clamp(12px, 2.2vh, 18px);
+    position: relative;
+    z-index: 2;
   }
 
   .round-play {
@@ -4114,10 +4145,25 @@ a.footer-contact-item:hover {
     height: 44px;
     padding: 0 16px;
     font-size: 12px;
+    letter-spacing: 0.04em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
+    border-radius: 28px;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background-color .2s ease, border-color .2s ease;
+  }
+
+  .hero-enquire-cta:hover,
+  .hero-enquire-cta:focus-visible {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #ffffff;
+    color: #ffffff;
   }
 
   .mm-hero-note {
@@ -4125,8 +4171,7 @@ a.footer-contact-item:hover {
   }
 
   .double-chevron {
-    display: inline-flex;
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    display: none !important;
   }
 
   .projects-desktop {
@@ -7806,7 +7851,7 @@ html[dir="rtl"] .leader-role {
   }
 
   .mm-hero h1 {
-    font-size: var(--font-homeHero, clamp(58px, 7vw, 104px))
+    font-size: var(--font-homeHero-desktop, var(--font-homeHero, var(--font-home-hero-heroHeading-desktop, clamp(58px, 7vw, 104px))));
   }
 
   .developments-hero h1 {
@@ -7896,8 +7941,8 @@ html[dir="rtl"] .leader-role {
   }
 
   .mm-hero h1 {
-    font-size: var(--font-homeHero-mobile, clamp(28px, 7.6vw, 38px));
-    line-height: 1.12;
+    font-size: var(--font-homeHero-mobile, var(--font-home-hero-heroHeading-mobile, clamp(24px, 5.8vw, 32px)));
+    line-height: 1.15;
     letter-spacing: -0.025em;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -7906,7 +7951,7 @@ html[dir="rtl"] .leader-role {
 
   .arabic .mm-hero h1,
   [dir="rtl"] .mm-hero h1 {
-    font-size: var(--font-homeHero-mobile, clamp(26px, 7.2vw, 35px));
+    font-size: var(--font-homeHero-mobile, var(--font-home-hero-heroHeading-mobile, clamp(22px, 5.4vw, 29px)));
     line-height: 1.32;
     letter-spacing: 0;
     word-break: break-word;

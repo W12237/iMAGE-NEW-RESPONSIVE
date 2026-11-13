@@ -199,7 +199,19 @@ export const getHomepageContent = cache(async (locale: Locale): Promise<HomeCont
         visible: n.visible,
         mobileVisible: (n as any).mobileVisible !== false,
       })),
-    hero: { enabled: home.heroEnabled, eyebrow: pick(locale, home.heroEyebrowEn, home.heroEyebrowAr), title: pick(locale, home.heroTitleEn, home.heroTitleAr).split("\n"), note: pick(locale, home.heroNoteEn, home.heroNoteAr), scroll: pick(locale, home.heroDiscoverEn, home.heroDiscoverAr), image: home.heroMediaUrl, mobileImage: home.heroMobileMediaUrl ?? undefined, desktopVideo: home.heroVideoDesktopUrl ?? undefined, mobileVideo: home.heroVideoMobileUrl ?? undefined, poster: home.heroPosterUrl ?? home.heroMediaUrl, alt: pick(locale, home.heroMediaAltEn, home.heroMediaAltAr) },
+    hero: {
+      enabled: home.heroEnabled,
+      eyebrow: pick(locale, home.heroEyebrowEn, home.heroEyebrowAr),
+      title: pick(locale, home.heroTitleEn, home.heroTitleAr).replace(/\\n/g, "\n").split("\n"),
+      note: pick(locale, home.heroNoteEn, home.heroNoteAr),
+      scroll: pick(locale, home.heroDiscoverEn, home.heroDiscoverAr),
+      image: home.heroMediaUrl,
+      mobileImage: home.heroMobileMediaUrl ?? undefined,
+      desktopVideo: home.heroVideoDesktopUrl ?? undefined,
+      mobileVideo: home.heroVideoMobileUrl ?? undefined,
+      poster: home.heroPosterUrl ?? home.heroMediaUrl,
+      alt: pick(locale, home.heroMediaAltEn, home.heroMediaAltAr)
+    },
     about: { enabled: home.aboutEnabled, eyebrow: pick(locale, home.aboutEyebrowEn, home.aboutEyebrowAr), title: pick(locale, home.aboutTitleEn, home.aboutTitleAr), intro: pick(locale, home.aboutIntroEn, home.aboutIntroAr), milestones: home.aboutMilestones.map(item => ({ id: item.id, year: item.year, title: pick(locale, item.titleEn, item.titleAr), body: pick(locale, item.bodyEn, item.bodyAr), image: item.imageUrl, alt: pick(locale, item.imageAltEn, item.imageAltAr) })) },
     projects: projects.map(p => ({
       id: p.id,

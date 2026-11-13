@@ -15,9 +15,43 @@ import { validateTypographyValue, TYPOGRAPHY_ROLES, type TypographyRole } from "
 const str=(f:FormData,k:string)=>String(f.get(k)??"").trim();
 const bool=(f:FormData,k:string)=>f.get(k)==="on";
 const rgb=(f:FormData,k:string)=>{const parts=str(f,k).split(",").map(value=>Number(value.trim()));return parts.length===3&&parts.every(value=>Number.isInteger(value)&&value>=0&&value<=255)?parts.join(", "):null};
-async function saveFontSizes(f:FormData){for(const[key,value]of f.entries()){if(!key.startsWith("fontSize_"))continue;const settingKey=key.slice(9);const raw=String(value).trim();if(!/^[a-z][a-zA-Z0-9]*$/.test(settingKey))continue;if(!raw){await prisma.typographySetting.deleteMany({where:{key:settingKey}});continue}const fontSize=Number(raw);if(Number.isInteger(fontSize)&&fontSize>=12&&fontSize<=200)await prisma.typographySetting.upsert({where:{key:settingKey},create:{key:settingKey,fontSize},update:{fontSize}})}}
+async function saveFontSizes(f: FormData) {
+  const settingKeys = new Set<string>();
+  for (const key of f.keys()) {
+    if (key.startsWith("fontSize_")) settingKeys.add(key.slice(9));
+    else if (key.startsWith("fontSizeDesktop_")) settingKeys.add(key.slice(16));
+    else if (key.startsWith("fontSizeMobile_")) settingKeys.add(key.slice(15));
+  }
+  for (const settingKey of settingKeys) {
+    if (!/^[a-z][a-zA-Z0-9]*$/.test(settingKey)) continue;
+    const rawDesktop = str(f, `fontSizeDesktop_${settingKey}`) || str(f, `fontSize_${settingKey}`);
+    const rawMobile = str(f, `fontSizeMobile_${settingKey}`);
+    const desktopNum = rawDesktop ? Number(rawDesktop) : null;
+    const mobileNum = rawMobile ? Number(rawMobile) : null;
+    const validDesktop = desktopNum !== null && Number.isInteger(desktopNum) && desktopNum >= 12 && desktopNum <= 200 ? desktopNum : null;
+    const validMobile = mobileNum !== null && Number.isInteger(mobileNum) && mobileNum >= 12 && mobileNum <= 200 ? mobileNum : null;
+    if (!validDesktop && !validMobile) {
+      await prisma.typographySetting.deleteMany({ where: { key: settingKey } });
+      continue;
+    }
+    await prisma.typographySetting.upsert({
+      where: { key: settingKey },
+      create: {
+        key: settingKey,
+        fontSize: validDesktop ?? undefined,
+        fontSizeDesktop: validDesktop ?? undefined,
+        fontSizeMobile: validMobile ?? undefined,
+      },
+      update: {
+        fontSize: validDesktop ?? undefined,
+        fontSizeDesktop: validDesktop ?? undefined,
+        fontSizeMobile: validMobile ?? undefined,
+      },
+    });
+  }
+}
 export type ActionState={error?:string;success?:string};
-export type UploadedMedia={id:string;url:string;filename:string;mimeType:string;size:number;kind:"IMAGE"|"VIDEO"};
+export type UploadedMedia={id:string;url:string;filename:string;mimeType:string;size:number;kind:"IMAGE"|"VIDEO"|"DOCUMENT"};
 
 const MEDIA_TYPES={
   "image/jpeg":{extension:"jpg",kind:"IMAGE",maxMb:8},"image/png":{extension:"png",kind:"IMAGE",maxMb:8},
@@ -35,7 +69,7 @@ function hasValidSignature(bytes:Uint8Array,mimeType:keyof typeof MEDIA_TYPES){
   return bytes[0]===0x1a&&bytes[1]===0x45&&bytes[2]===0xdf&&bytes[3]===0xa3;
 }
 
-async function storeMedia(file:File,expectedKind?:"IMAGE"|"VIDEO"):Promise<{asset?:UploadedMedia;error?:string}>{
+async function storeMedia(file:File,expectedKind?:"IMAGE"|"VIDEO"|"DOCUMENT"):Promise<{asset?:UploadedMedia;error?:string}>{
   const type=MEDIA_TYPES[file.type as keyof typeof MEDIA_TYPES];
   if(!type)return{error:expectedKind==="VIDEO"?"Unsupported format. Choose an MP4 or WebM video.":expectedKind==="IMAGE"?"Unsupported format. Choose a JPEG, PNG, WebP, or AVIF image.":"Use JPEG, PNG, WebP, AVIF, MP4, or WebM."};
   if(expectedKind&&type.kind!==expectedKind)return{error:`Choose a${expectedKind==="IMAGE"?"n image":" video"} file for this field.`};
@@ -437,23 +471,68 @@ export async function saveTerms(_:ActionState,f:FormData):Promise<ActionState>{
 
 export async function saveContactPage(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();if(["contactEyebrowEn","contactEyebrowAr","contactPageTitleEn","contactPageTitleAr","contactIntroEn","contactIntroAr"].some(key=>!str(f,key)))return{error:"Complete all required page fields."};await prisma.contactPage.update({where:{id:"contactpage"},data:{heroEyebrowEn:str(f,"contactEyebrowEn"),heroEyebrowAr:str(f,"contactEyebrowAr"),heroTitleEn:str(f,"contactPageTitleEn"),heroTitleAr:str(f,"contactPageTitleAr"),heroBodyEn:str(f,"contactIntroEn"),heroBodyAr:str(f,"contactIntroAr")}});await saveFontSizes(f);revalidatePath("/en/contact");revalidatePath("/ar/contact");revalidatePath("/admin/contact");revalidatePath("/", "layout");return{success:"Contact page saved."};}
 
-export async function saveProject(_: ActionState, f: FormData): Promise<ActionState> {
+export async function saveProject(_: ActionState, f: FormData): Promise<ActionState & { projectId?: string }> {
   await requireAdmin();
-  const data = {
-    slug: str(f, "slug"),
-    nameEn: str(f, "nameEn"),
-    nameAr: str(f, "nameAr"),
-    shortDescriptionEn: str(f, "shortDescriptionEn"),
-    shortDescriptionAr: str(f, "shortDescriptionAr"),
-    locationEn: str(f, "locationEn"),
-    locationAr: str(f, "locationAr"),
-    coverImageUrl: str(f, "coverImageUrl"),
-    status: str(f, "status"),
+  const rawStatus = str(f, "status") || "DRAFT";
+  const validStatus = (["DRAFT", "PUBLISHED", "ARCHIVED"].includes(rawStatus) ? rawStatus : "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+  const rawSlug = str(f, "slug") || str(f, "nameEn");
+  const nameEn = str(f, "nameEn");
+  const nameAr = str(f, "nameAr") || nameEn;
+  const shortDescriptionEn = str(f, "shortDescriptionEn");
+  const shortDescriptionAr = str(f, "shortDescriptionAr") || shortDescriptionEn;
+  const locationEn = str(f, "locationEn");
+  const locationAr = str(f, "locationAr") || locationEn;
+  const coverImageUrl = str(f, "coverImageUrl");
+
+  // If publishing, strictly validate all required presentation fields
+  if (validStatus === "PUBLISHED") {
+    const data = {
+      slug: rawSlug,
+      nameEn,
+      nameAr,
+      shortDescriptionEn,
+      shortDescriptionAr,
+      locationEn,
+      locationAr,
+      coverImageUrl,
+      status: validStatus,
+      featured: bool(f, "featured"),
+      featuredOrder: str(f, "featuredOrder"),
+    };
+    const parsed = projectSchema.safeParse(data);
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+  } else {
+    // For drafts: minimum required is an English name
+    if (!nameEn) {
+      return { error: "Please enter at least an English project name." };
+    }
+  }
+
+  // Format safe URL slug
+  let formattedSlug = rawSlug
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+  if (!formattedSlug) formattedSlug = `project-${Date.now()}`;
+
+  const resolvedData = {
+    slug: formattedSlug,
+    nameEn,
+    nameAr: nameAr || nameEn,
+    shortDescriptionEn: shortDescriptionEn || "Draft project description",
+    shortDescriptionAr: shortDescriptionAr || shortDescriptionEn || "وصف المشروع",
+    locationEn: locationEn || "Cairo",
+    locationAr: locationAr || locationEn || "القاهرة",
+    coverImageUrl: coverImageUrl || "",
+    status: validStatus,
     featured: bool(f, "featured"),
-    featuredOrder: str(f, "featuredOrder"),
+    featuredOrder: parseInt(str(f, "featuredOrder") || "0", 10) || 0,
   };
-  const parsed = projectSchema.safeParse(data);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   // Helper to parse JSON payloads safely
   const parseJson = <T>(val: string, fallback: T): T => {
@@ -519,13 +598,14 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
     mapUrl: str(f, "mapUrl") || null,
     mobileHeroImageUrl: str(f, "mobileHeroImageUrl") || null,
     heroVideoUrl: str(f, "heroVideoUrl") || null,
+    heroVideoPosterUrl: str(f, "heroVideoPosterUrl") || null,
     cardImageUrl: str(f, "cardImageUrl") || null,
     heroTitleEn: str(f, "heroTitleEn") || null,
     heroTitleAr: str(f, "heroTitleAr") || null,
     heroDescriptionEn: str(f, "heroDescriptionEn") || null,
     heroDescriptionAr: str(f, "heroDescriptionAr") || null,
-    coverImageAltEn: str(f, "coverImageAltEn") || parsed.data.nameEn,
-    coverImageAltAr: str(f, "coverImageAltAr") || parsed.data.nameAr,
+    coverImageAltEn: str(f, "coverImageAltEn") || resolvedData.nameEn,
+    coverImageAltAr: str(f, "coverImageAltAr") || resolvedData.nameAr,
     coverImageFocalPoint: str(f, "coverImageFocalPoint") || "center",
     ctaLabelEn: str(f, "ctaLabelEn") || null,
     ctaLabelAr: str(f, "ctaLabelAr") || null,
@@ -560,18 +640,18 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
 
       if (id) {
         const existing = await tx.project.findUnique({ where: { id } });
-        if (existing && existing.slug !== parsed.data.slug) {
+        if (existing && existing.slug !== resolvedData.slug) {
           await tx.projectRedirect.upsert({
             where: { sourceSlug: existing.slug },
-            update: { targetSlug: parsed.data.slug },
-            create: { sourceSlug: existing.slug, targetSlug: parsed.data.slug },
+            update: { targetSlug: resolvedData.slug },
+            create: { sourceSlug: existing.slug, targetSlug: resolvedData.slug },
           });
           revalidatePath(`/en/projects/${existing.slug}`);
           revalidatePath(`/ar/projects/${existing.slug}`);
         }
-        await tx.project.update({ where: { id }, data: { ...parsed.data, ...extra } });
+        await tx.project.update({ where: { id }, data: { ...resolvedData, ...extra } });
       } else {
-        const created = await tx.project.create({ data: { ...parsed.data, ...extra } });
+        const created = await tx.project.create({ data: { ...resolvedData, ...extra } });
         targetProjectId = created.id;
         savedId = created.id;
       }
@@ -655,6 +735,9 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
               captionAr: g.captionAr ? String(g.captionAr).trim() : null,
               altEn: g.altEn ? String(g.altEn).trim() : null,
               altAr: g.altAr ? String(g.altAr).trim() : null,
+              isVideo: Boolean(g.isVideo),
+              videoUrl: g.videoUrl ? String(g.videoUrl).trim() : null,
+              posterUrl: g.posterUrl ? String(g.posterUrl).trim() : null,
               sortOrder: typeof g.sortOrder === "number" ? g.sortOrder : idx,
             })),
           });
@@ -705,8 +788,8 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
     return { error: err.message || "Failed to save project. Ensure slug is unique." };
   }
 
-  revalidatePath(`/en/projects/${parsed.data.slug}`);
-  revalidatePath(`/ar/projects/${parsed.data.slug}`);
+  revalidatePath(`/en/projects/${resolvedData.slug}`);
+  revalidatePath(`/ar/projects/${resolvedData.slug}`);
   revalidatePath("/admin/projects");
   if (savedId) revalidatePath(`/admin/projects/${savedId}`);
   revalidatePath("/en");
@@ -715,12 +798,12 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
   revalidatePath("/ar/projects");
   revalidatePath("/", "layout");
 
-  // If redirect requested (e.g. from new project creation without ajax)
-  if (str(f, "redirectAfterSave") === "true" || !id) {
+  // If redirect requested explicitly (e.g. from non-ajax form)
+  if (str(f, "redirectAfterSave") === "true") {
     redirect(`/admin/projects/${savedId}`);
   }
 
-  return { success: "Project and all normalized details saved successfully." };
+  return { success: "Project and all normalized details saved successfully.", projectId: savedId };
 }
 
 export async function deleteProject(f: FormData) {
@@ -755,6 +838,55 @@ export async function deleteProject(f: FormData) {
   revalidatePath("/en/projects");
   revalidatePath("/ar/projects");
   revalidatePath("/", "layout");
+}
+
+export async function setProjectStatus(projectId: string, status: "DRAFT" | "PUBLISHED" | "ARCHIVED"): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    const project = await prisma.project.update({
+      where: { id: projectId },
+      data: { status },
+      select: { slug: true },
+    });
+    revalidatePath(`/en/projects/${project.slug}`);
+    revalidatePath(`/ar/projects/${project.slug}`);
+    revalidatePath("/admin/projects");
+    revalidatePath(`/admin/projects/${projectId}`);
+    revalidatePath("/en");
+    revalidatePath("/ar");
+    revalidatePath("/en/projects");
+    revalidatePath("/ar/projects");
+    revalidatePath("/", "layout");
+    return { success: `Project status updated to ${status}.` };
+  } catch (err: any) {
+    return { error: err.message || "Failed to update project status." };
+  }
+}
+
+export async function toggleProjectFeatured(projectId: string): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { featured: true, slug: true },
+    });
+    if (!project) return { error: "Project not found." };
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { featured: !project.featured },
+    });
+    revalidatePath("/admin/projects");
+    revalidatePath("/en");
+    revalidatePath("/ar");
+    revalidatePath("/", "layout");
+    return { success: `Project featured state updated.` };
+  } catch (err: any) {
+    return { error: err.message || "Failed to toggle featured state." };
+  }
+}
+
+export async function archiveProject(projectId: string): Promise<ActionState> {
+  return setProjectStatus(projectId, "ARCHIVED");
 }
 
 export async function uploadProjectVisualTour(_: ActionState, f: FormData): Promise<ActionState> {
@@ -1204,7 +1336,7 @@ export async function saveSettings(_:ActionState,f:FormData):Promise<ActionState
 
 export async function uploadMedia(_:ActionState,f:FormData):Promise<ActionState>{await requireAdmin();const file=f.get("file");if(!(file instanceof File)||file.size===0)return{error:"Choose an image or video."};const result=await storeMedia(file);if(result.error)return{error:result.error};if(result.asset&&(str(f,"altEn")||str(f,"altAr")))await prisma.mediaAsset.update({where:{id:result.asset.id},data:{altEn:str(f,"altEn")||null,altAr:str(f,"altAr")||null}});revalidatePath("/admin/media");revalidatePath("/admin/homepage");return{success:`${result.asset?.kind==="VIDEO"?"Video":"Image"} uploaded to the Media Library.`};}
 
-export async function uploadHomepageMedia(f:FormData,expectedKind:"IMAGE"|"VIDEO"):Promise<{asset?:UploadedMedia;error?:string}>{await requireAdmin();const file=f.get("file");if(!(file instanceof File)||file.size===0)return{error:`Choose a${expectedKind==="IMAGE"?"n image":" video"} file.`};return storeMedia(file,expectedKind);}
+export async function uploadHomepageMedia(f:FormData,expectedKind:"IMAGE"|"VIDEO"|"DOCUMENT"):Promise<{asset?:UploadedMedia;error?:string}>{await requireAdmin();const file=f.get("file");if(!(file instanceof File)||file.size===0)return{error:`Choose a${expectedKind==="IMAGE"?"n image":expectedKind==="VIDEO"?" video":" document"} file.`};return storeMedia(file,expectedKind);}
 
 export async function deleteMedia(_:ActionState,f:FormData):Promise<ActionState>{
   await requireAdmin();

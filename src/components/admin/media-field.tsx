@@ -6,7 +6,7 @@ import { uploadHomepageMedia, type UploadedMedia } from "@/app/admin/actions";
 
 const sizeLabel=(size:number)=>size>=1024*1024?`${(size/1024/1024).toFixed(1)} MB`:`${Math.max(1,Math.round(size/1024))} KB`;
 
-export function MediaField({name,label,value="",assets:initialAssets,kind,required=false}:{name:string;label:string;value?:string;assets:UploadedMedia[];kind:"IMAGE"|"VIDEO";required?:boolean}){
+export function MediaField({name,label,value="",assets:initialAssets,kind,required=false}:{name:string;label:string;value?:string;assets:UploadedMedia[];kind:"IMAGE"|"VIDEO"|"DOCUMENT";required?:boolean}){
   const initial=initialAssets.find(asset=>asset.url===value);
   const [selected,setSelected]=useState<UploadedMedia|undefined>(initial);
   const [externalValue,setExternalValue]=useState(initial?"":value);

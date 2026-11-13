@@ -160,27 +160,51 @@ export function FontSizeField({
   sectionKey,
   label,
   value,
+  mobileValue,
 }: {
   sectionKey: string;
   label: string;
   value?: number;
+  mobileValue?: number;
 }) {
   return (
-    <label>
-      {label}
-      <input
-        name={`fontSize_${sectionKey}`}
-        defaultValue={value ?? ""}
-        type="number"
-        min="12"
-        max="200"
-        step="1"
-        placeholder="Use design default"
-      />
-      <small style={{ color: "#68736d", fontWeight: 400 }}>
-        Main heading size in pixels (12–200). Leave blank to use the design default.
+    <div style={{ background: "#ffffff", border: "1px solid #e7ded4", borderRadius: "10px", padding: "14px 16px", marginBottom: "12px" }}>
+      <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--forest, #152a20)", marginBottom: "8px" }}>
+        {label}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", fontWeight: 500, color: "#68736d" }}>
+          <span>Desktop Font Size (px)</span>
+          <input
+            name={`fontSizeDesktop_${sectionKey}`}
+            defaultValue={value ?? ""}
+            type="number"
+            min="12"
+            max="200"
+            step="1"
+            placeholder="Design default"
+            style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc", fontFamily: "inherit" }}
+          />
+          <input type="hidden" name={`fontSize_${sectionKey}`} value={value ?? ""} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", fontWeight: 500, color: "#68736d" }}>
+          <span>Mobile Font Size (px)</span>
+          <input
+            name={`fontSizeMobile_${sectionKey}`}
+            defaultValue={mobileValue ?? ""}
+            type="number"
+            min="12"
+            max="100"
+            step="1"
+            placeholder="Design default"
+            style={{ padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc", fontFamily: "inherit" }}
+          />
+        </label>
+      </div>
+      <small style={{ color: "#8a948e", fontSize: "11px", marginTop: "6px", display: "block" }}>
+        Leave either field blank to use the responsive fluid design default.
       </small>
-    </label>
+    </div>
   );
 }
 

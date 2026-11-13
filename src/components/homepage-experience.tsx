@@ -134,8 +134,8 @@ function Hero({ copy }: { copy: HomeContent }) {
             ease: HERO_TIMING.heading.ease,
           }}
         >
-          {copy.hero.title.map((line) => (
-            <span key={line}>{line}</span>
+          {copy.hero.title.map((line, idx) => (
+            <span key={`${line}-${idx}`}>{line}</span>
           ))}
         </motion.h1>
 
