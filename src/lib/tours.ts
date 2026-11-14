@@ -41,6 +41,12 @@ export async function processVisualTourUpload(
   customTourId?: string
 ): Promise<TourProcessResult> {
   const originalFilename = file.name;
+  if (originalFilename.includes("..") || path.isAbsolute(originalFilename)) {
+    return {
+      success: false,
+      error: "Unsafe filename detected. Directory traversal is prohibited.",
+    };
+  }
   const ext = path.extname(originalFilename).toLowerCase();
   const buffer = Buffer.from(await file.arrayBuffer());
   const uploadedSize = buffer.length;

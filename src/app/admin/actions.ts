@@ -819,7 +819,19 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
           revalidatePath(`/en/projects/${existing.slug}`);
           revalidatePath(`/ar/projects/${existing.slug}`);
         }
-        await tx.project.update({ where: { id }, data: { ...resolvedData, ...extra } });
+        // Merge extra fields: preserve existing values if field was omitted in partial submission
+        const mergedData: Record<string, any> = { ...resolvedData };
+        for (const [key, value] of Object.entries(extra)) {
+          if (f.has(key)) {
+            mergedData[key] = value;
+          } else if (existing && (existing as any)[key] !== undefined) {
+            mergedData[key] = (existing as any)[key];
+          } else {
+            mergedData[key] = value;
+          }
+        }
+
+        await tx.project.update({ where: { id }, data: mergedData });
       } else {
         const created = await tx.project.create({ data: { ...resolvedData, ...extra } });
         targetProjectId = created.id;
