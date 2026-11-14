@@ -455,10 +455,57 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
   const rawUpdates = parseJson<Array<{ date: string; titleEn: string; titleAr: string; descriptionEn?: string; descriptionAr?: string; imageUrl?: string; isVideo?: boolean }>>(project.constructionUpdates, []);
   const rawGallery = parseJson<string[]>(project.gallery, []);
 
-  // Merge gallery items: if normalized items exist, map them; otherwise use raw gallery
-  const galleryUrls = project.galleryItemList && project.galleryItemList.length > 0
-    ? project.galleryItemList.map(g => g.imageUrl)
-    : (rawGallery.length > 0 ? rawGallery : [project.coverImageUrl]);
+  // Merge and filter gallery items: normalized items take priority
+  const visibleGalleryList = (project.galleryItemList || []).filter((g) => isPreview || g.visible !== false);
+  const galleryItems = visibleGalleryList.length > 0
+    ? visibleGalleryList.map((g, i) => ({
+        id: g.id || `gallery-item-${i}`,
+        url: g.videoUrl || g.imageUrl,
+        imageUrl: g.imageUrl,
+        category: (g.category || "RENDERS").toUpperCase(),
+        caption: pick(locale, g.captionEn ?? "", g.captionAr ?? ""),
+        alt: pick(locale, g.altEn ?? "", g.altAr ?? "") || `${pick(locale, project.nameEn, project.nameAr)} gallery ${i + 1}`,
+        isVideo: Boolean(g.isVideo),
+        videoUrl: g.videoUrl || undefined,
+        posterUrl: g.posterUrl || undefined,
+        focalPoint: g.focalPoint || "center",
+        sortOrder: typeof g.sortOrder === "number" ? g.sortOrder : i,
+      }))
+    : rawGallery.map((url, i) => ({
+        id: `raw-gallery-${i}`,
+        url,
+        imageUrl: url,
+        category: "RENDERS",
+        caption: "",
+        alt: `${pick(locale, project.nameEn, project.nameAr)} gallery ${i + 1}`,
+        isVideo: false,
+        videoUrl: undefined,
+        posterUrl: undefined,
+        focalPoint: "center",
+        sortOrder: i,
+      }));
+
+  const galleryUrls = galleryItems.length > 0
+    ? galleryItems.map((g) => g.imageUrl)
+    : [project.coverImageUrl];
+
+  const gallerySettings = {
+    enabled: project.galleryEnabled !== false,
+    title: pick(
+      locale,
+      project.galleryTitleEn ?? (locale === "ar" ? "معرض المشروع" : "Project Gallery"),
+      project.galleryTitleAr ?? (locale === "ar" ? "معرض المشروع" : "Project Gallery")
+    ),
+    intro: pick(
+      locale,
+      project.galleryIntroEn ?? (locale === "ar" ? "تفاصيل معمارية وصور حصرية لوجهة استثنائية." : "Immersive architectural perspectives and curated project photography."),
+      project.galleryIntroAr ?? (locale === "ar" ? "تفاصيل معمارية وصور حصرية لوجهة استثنائية." : "Immersive architectural perspectives and curated project photography.")
+    ),
+    showFilters: project.galleryShowFilters !== false,
+    showCaptions: project.galleryShowCaptions !== false,
+    layout: ((project.galleryLayout || "grid") === "carousel" ? "carousel" : "grid") as "grid" | "carousel",
+    coverUrl: project.galleryCoverUrl || undefined,
+  };
 
   // Key facts: normalized take priority
   const keyFacts = project.keyFactsList && project.keyFactsList.length > 0
@@ -587,6 +634,8 @@ export const getProjectDetailContent = cache(async (locale: Locale, slug: string
       heroVideoUrl: project.heroVideoUrl ?? undefined,
       cardImageUrl: project.cardImageUrl ?? undefined,
       gallery: galleryUrls,
+      galleryItems,
+      gallerySettings,
       logoUrl: project.logoUrl ?? undefined,
       ctaLabel: pick(locale, project.ctaLabelEn ?? "", project.ctaLabelAr ?? "") || undefined,
       ctaUrl: project.ctaUrl ?? undefined,

@@ -22,8 +22,10 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
   const [zoomScale, setZoomScale] = useState(1);
 
   // Gallery category and lightbox state
-  const [galleryFilter, setGalleryFilter] = useState<"ALL" | "RENDERS" | "CONSTRUCTION">("ALL");
+  const [galleryFilter, setGalleryFilter] = useState<string>("ALL");
   const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
+  const lightboxVideoRef = useRef<HTMLVideoElement>(null);
+  const carouselTrackRef = useRef<HTMLDivElement>(null);
 
   // Touch swipe state for lightbox
   const touchStartX = useRef<number | null>(null);
@@ -105,14 +107,53 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
     el?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Gallery items classification
-  const galleryItems = project.gallery.length > 0 ? project.gallery : [project.coverImageUrl];
-  const filteredGallery = galleryItems.filter((_, idx) => {
+  // Pause lightbox video when active item changes or closes
+  useEffect(() => {
+    if (lightboxVideoRef.current) {
+      lightboxVideoRef.current.pause();
+    }
+  }, [activeLightboxIndex]);
+
+  // Gallery items normalization
+  const rawGalleryUrls = project.gallery?.length > 0 ? project.gallery : [project.coverImageUrl];
+  const itemsList = (project.galleryItems && project.galleryItems.length > 0)
+    ? project.galleryItems
+    : rawGalleryUrls.map((url, i) => ({
+        id: `legacy-${i}`,
+        url,
+        imageUrl: url,
+        category: "RENDERS",
+        caption: "",
+        alt: `${project.name} gallery image ${i + 1}`,
+        isVideo: false,
+        sortOrder: i,
+      }));
+
+  const gallerySettings = project.gallerySettings || {
+    enabled: true,
+    title: ar ? "معرض المشروع" : "Project Gallery",
+    intro: ar ? "تفاصيل معمارية وصور حصرية لوجهة استثنائية." : "Immersive architectural perspectives and curated project photography.",
+    showFilters: true,
+    showCaptions: true,
+    layout: "grid" as const,
+  };
+
+  const presentCategories = Array.from(
+    new Set(itemsList.map((item) => (item.category || "RENDERS").toUpperCase()))
+  );
+
+  const filteredGallery = itemsList.filter((item) => {
     if (galleryFilter === "ALL") return true;
-    if (galleryFilter === "RENDERS") return idx % 2 === 0;
-    if (galleryFilter === "CONSTRUCTION") return idx % 2 === 1;
-    return true;
+    return (item.category || "RENDERS").toUpperCase() === galleryFilter;
   });
+
+  const categoryLabels: Record<string, { en: string; ar: string }> = {
+    ALL: { en: "All", ar: "الكل" },
+    RENDERS: { en: "Renders", ar: "التصميمات المعمارية" },
+    CONSTRUCTION: { en: "Construction", ar: "أعمال الموقع" },
+    INTERIOR: { en: "Interiors", ar: "التصميم الداخلي" },
+    MASTER_PLAN: { en: "Master Plan", ar: "المخطط العام" },
+  };
 
   const activeTour: ProjectVisualTourItem | undefined = visualTours[activeTourIndex];
 
@@ -616,68 +657,154 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
         </div>
 
         {/* =========================================================
-            7. Project Gallery (Full Width Impact)
+            7. Project Gallery (CMS Managed Grid & Carousel)
         ========================================================= */}
-        <section id="gallery" className="project-gallery-section stage-pad" style={{ marginBottom: "64px" }}>
-          <div className="gallery-header-row">
-            <div className="section-header">
-              <span className="section-eyebrow">{ar ? "معرض المشروع" : "Project Gallery"}</span>
-              <h2>{ar ? "تفاصيل تلهم التجربة" : "Immersive Visual Experience"}</h2>
+        {gallerySettings.enabled && filteredGallery.length > 0 && (
+          <section id="gallery" className="project-gallery-section stage-pad" style={{ marginBottom: "64px" }}>
+            <div className="gallery-header-row">
+              <div className="section-header">
+                <span className="section-eyebrow">{ar ? "معرض المشروع" : "Project Gallery"}</span>
+                <h2>{gallerySettings.title || (ar ? "تفاصيل تلهم التجربة" : "Immersive Visual Experience")}</h2>
+                {gallerySettings.intro && (
+                  <p className="section-intro" style={{ marginTop: "6px", maxWidth: "680px", color: "var(--muted)", fontSize: "14px" }}>
+                    {gallerySettings.intro}
+                  </p>
+                )}
+              </div>
+
+              {gallerySettings.showFilters && presentCategories.length > 1 && (
+                <div className="gallery-filter-tabs" role="tablist" aria-label={ar ? "تصنيفات المعرض" : "Gallery Categories"}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={galleryFilter === "ALL"}
+                    className={`gallery-tab ${galleryFilter === "ALL" ? "is-active" : ""}`}
+                    onClick={() => setGalleryFilter("ALL")}
+                  >
+                    {ar ? "الكل" : "All"}
+                  </button>
+                  {presentCategories.map((cat) => {
+                    const label = categoryLabels[cat]
+                      ? ar
+                        ? categoryLabels[cat].ar
+                        : categoryLabels[cat].en
+                      : cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        role="tab"
+                        aria-selected={galleryFilter === cat}
+                        className={`gallery-tab ${galleryFilter === cat ? "is-active" : ""}`}
+                        onClick={() => setGalleryFilter(cat)}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="gallery-filter-tabs">
-              <button
-                type="button"
-                className={`gallery-tab ${galleryFilter === "ALL" ? "is-active" : ""}`}
-                onClick={() => setGalleryFilter("ALL")}
-              >
-                {ar ? "الكل" : "All"}
-              </button>
-              <button
-                type="button"
-                className={`gallery-tab ${galleryFilter === "RENDERS" ? "is-active" : ""}`}
-                onClick={() => setGalleryFilter("RENDERS")}
-              >
-                {ar ? "التصميمات المعمارية" : "Renders"}
-              </button>
-              <button
-                type="button"
-                className={`gallery-tab ${galleryFilter === "CONSTRUCTION" ? "is-active" : ""}`}
-                onClick={() => setGalleryFilter("CONSTRUCTION")}
-              >
-                {ar ? "صور الموقع" : "Construction Photos"}
-              </button>
-            </div>
-          </div>
-
-          <div className="gallery-grid">
-            {filteredGallery.map((imgUrl, i) => (
-              <div
-                key={i}
-                className="gallery-thumb"
-                onClick={() => setActiveLightboxIndex(i)}
-                tabIndex={0}
-                role="button"
-                aria-label={ar ? `عرض الصورة ${i + 1} بالحجم الكامل` : `View image ${i + 1} full-screen`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") setActiveLightboxIndex(i);
-                }}
-              >
-                <Image
-                  src={imgUrl}
-                  alt={`${project.name} gallery image ${i + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="gallery-img"
-                  quality={85}
-                />
-                <div className="gallery-thumb-hover">
-                  <span>+</span>
+            {/* Layout Preset: Carousel vs Grid */}
+            {gallerySettings.layout === "carousel" ? (
+              <div className="gallery-carousel-wrapper" style={{ position: "relative" }}>
+                <div
+                  ref={carouselTrackRef}
+                  className="gallery-carousel-track"
+                  style={{
+                    display: "flex",
+                    gap: "18px",
+                    overflowX: "auto",
+                    scrollSnapType: "x mandatory",
+                    WebkitOverflowScrolling: "touch",
+                    paddingBottom: "16px",
+                  }}
+                >
+                  {filteredGallery.map((item, i) => (
+                    <div
+                      key={item.id || i}
+                      className="gallery-thumb gallery-carousel-slide"
+                      style={{
+                        flex: "0 0 min(85vw, 420px)",
+                        scrollSnapAlign: "start",
+                      }}
+                      onClick={() => setActiveLightboxIndex(i)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={ar ? `عرض العنصر ${i + 1} بالحجم الكامل` : `View item ${i + 1} full-screen`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setActiveLightboxIndex(i);
+                      }}
+                    >
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.alt || `${project.name} gallery item ${i + 1}`}
+                        fill
+                        sizes="(max-width: 768px) 85vw, 420px"
+                        className="gallery-img"
+                        quality={85}
+                        style={{ objectPosition: (item as any).focalPoint || "center" }}
+                      />
+                      {item.isVideo && (
+                        <div className="gallery-video-indicator" aria-label="Video item">
+                          <span>▶</span>
+                        </div>
+                      )}
+                      {gallerySettings.showCaptions && item.caption && (
+                        <div className="gallery-thumb-caption">
+                          <span>{item.caption}</span>
+                        </div>
+                      )}
+                      <div className="gallery-thumb-hover">
+                        <span>+</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            ) : (
+              <div className="gallery-grid">
+                {filteredGallery.map((item, i) => (
+                  <div
+                    key={item.id || i}
+                    className="gallery-thumb"
+                    onClick={() => setActiveLightboxIndex(i)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={ar ? `عرض العنصر ${i + 1} بالحجم الكامل` : `View item ${i + 1} full-screen`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setActiveLightboxIndex(i);
+                    }}
+                  >
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.alt || `${project.name} gallery image ${i + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="gallery-img"
+                      quality={85}
+                      style={{ objectPosition: (item as any).focalPoint || "center" }}
+                    />
+                    {item.isVideo && (
+                      <div className="gallery-video-indicator" aria-label="Video item">
+                        <span>▶</span>
+                      </div>
+                    )}
+                    {gallerySettings.showCaptions && item.caption && (
+                      <div className="gallery-thumb-caption">
+                        <span>{item.caption}</span>
+                      </div>
+                    )}
+                    <div className="gallery-thumb-hover">
+                      <span>+</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       {/* =========================================================
@@ -812,15 +939,31 @@ export function ProjectDetailExperience({ copy }: { copy: ProjectDetailPageConte
             </button>
 
             <div className="lightbox-img-wrap">
-              <Image
-                src={filteredGallery[activeLightboxIndex]}
-                alt={`${project.name} photo ${activeLightboxIndex + 1}`}
-                width={1600}
-                height={1000}
-                quality={92}
-                priority
-                style={{ width: "auto", height: "auto", maxWidth: "92vw", maxHeight: "85vh", objectFit: "contain" }}
-              />
+              {filteredGallery[activeLightboxIndex]?.isVideo ? (
+                <video
+                  src={(filteredGallery[activeLightboxIndex] as any)?.videoUrl || filteredGallery[activeLightboxIndex]?.imageUrl}
+                  poster={filteredGallery[activeLightboxIndex]?.imageUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  style={{ width: "auto", height: "auto", maxWidth: "92vw", maxHeight: "80vh", objectFit: "contain", borderRadius: "8px" }}
+                />
+              ) : (
+                <Image
+                  src={filteredGallery[activeLightboxIndex]?.imageUrl || ""}
+                  alt={filteredGallery[activeLightboxIndex]?.alt || `${project.name} photo ${activeLightboxIndex + 1}`}
+                  width={1600}
+                  height={1000}
+                  quality={92}
+                  priority
+                  style={{ width: "auto", height: "auto", maxWidth: "92vw", maxHeight: "85vh", objectFit: "contain" }}
+                />
+              )}
+              {filteredGallery[activeLightboxIndex]?.caption && (
+                <p className="lightbox-caption" style={{ marginTop: "12px", fontSize: "14px", color: "rgba(255, 255, 255, 0.85)", textAlign: "center" }}>
+                  {filteredGallery[activeLightboxIndex].caption}
+                </p>
+              )}
               <span className="lightbox-counter">
                 {activeLightboxIndex + 1} / {filteredGallery.length}
               </span>

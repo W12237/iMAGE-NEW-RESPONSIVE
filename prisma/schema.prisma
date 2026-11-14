@@ -376,6 +376,15 @@ model Project {
   coverImageAltAr     String
   coverImageFocalPoint String       @default("center")
   gallery             String        @default("[]")
+  galleryEnabled      Boolean       @default(true)
+  galleryTitleEn      String?
+  galleryTitleAr      String?
+  galleryIntroEn      String?
+  galleryIntroAr      String?
+  galleryShowFilters  Boolean       @default(true)
+  galleryShowCaptions Boolean       @default(true)
+  galleryLayout       String        @default("grid")
+  galleryCoverUrl     String?
   logoUrl             String?
   ctaLabelEn          String?
   ctaLabelAr          String?
@@ -481,21 +490,26 @@ model ProjectUnitType {
 }
 
 model ProjectGalleryItem {
-  id        String  @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  imageUrl  String
-  category  String  @default("RENDERS") // RENDERS | CONSTRUCTION | INTERIOR | MASTER_PLAN
-  captionEn String?
-  captionAr String?
-  altEn     String?
-  altAr     String?
-  isVideo   Boolean @default(false)
-  videoUrl  String?
-  posterUrl String?
-  sortOrder Int     @default(0)
+  id           String      @id @default(cuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  category     String      @default("RENDERS") // RENDERS | CONSTRUCTION | INTERIOR | MASTER_PLAN
+  captionEn    String?
+  captionAr    String?
+  altEn        String?
+  altAr        String?
+  isVideo      Boolean     @default(false)
+  videoUrl     String?
+  posterUrl    String?
+  focalPoint   String      @default("center")
+  visible      Boolean     @default(true)
+  sortOrder    Int         @default(0)
+  mediaAssetId String?
+  mediaAsset   MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
 
   @@index([projectId, sortOrder])
+  @@index([mediaAssetId])
 }
 
 model ProjectConstructionUpdate {
@@ -800,6 +814,8 @@ model MediaAsset {
   captionAr  String?
   status     String    @default("READY")
   createdAt  DateTime  @default(now())
+
+  projectGalleryItems ProjectGalleryItem[]
 }
 
 model TypographySetting {

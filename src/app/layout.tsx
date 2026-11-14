@@ -1,6 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { prisma } from "@/lib/prisma";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: "Image Developments — Places with perspective",
@@ -39,6 +45,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           }
           if (item.fontSizeMobile) {
             rules.push(`--font-${safeKey}-mobile:${item.fontSizeMobile}px`);
+          }
+          if (item.key.endsWith(":all")) {
+            const baseSafeKey = safeKey.replace(/-all$/, "");
+            if (item.fontSizeDesktop) {
+              rules.push(`--font-${baseSafeKey}-desktop:${item.fontSizeDesktop}px`);
+            }
+            if (item.fontSizeMobile) {
+              rules.push(`--font-${baseSafeKey}-mobile:${item.fontSizeMobile}px`);
+            }
           }
         }
       }

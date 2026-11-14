@@ -22,6 +22,7 @@ import {
   type ActionState,
 } from "@/app/admin/actions";
 import { MediaUploadField } from "./media-upload-field";
+import { ProjectGalleryManager, type GallerySettingsData } from "./project-gallery-manager";
 
 export type ProjectWithRelations = Project & {
   keyFactsList?: ProjectKeyFact[];
@@ -60,7 +61,7 @@ const TABS: Array<{ key: TabKey; labelEn: string; labelAr: string; number: strin
   { key: "unit_types", labelEn: "Unit Types", labelAr: "أنواع الوحدات", number: "05" },
   { key: "master_plan", labelEn: "Master Plan", labelAr: "المخطط العام", number: "06" },
   { key: "location", labelEn: "Location & Access", labelAr: "الموقع والوصول", number: "07" },
-  { key: "gallery", labelEn: "Gallery", labelAr: "معرض الصور", number: "08" },
+  { key: "gallery", labelEn: "Project Gallery", labelAr: "معرض المشروع", number: "08" },
   { key: "construction", labelEn: "Construction Updates", labelAr: "مستجدات البناء", number: "09" },
   { key: "brochure", labelEn: "Brochure & CTA", labelAr: "الكتيب والإجراءات", number: "10" },
   { key: "visual_tours", labelEn: "Visual Tours", labelAr: "الجولات الافتراضية", number: "11" },
@@ -243,7 +244,7 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
       return item.galleryItemList.map((g) => ({
         id: g.id,
         imageUrl: g.imageUrl,
-        category: g.category,
+        category: g.category || "RENDERS",
         captionEn: g.captionEn ?? "",
         captionAr: g.captionAr ?? "",
         altEn: g.altEn ?? "",
@@ -251,7 +252,11 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
         isVideo: (g as any).isVideo ?? false,
         videoUrl: (g as any).videoUrl ?? "",
         posterUrl: (g as any).posterUrl ?? "",
+        focalPoint: (g as any).focalPoint ?? "center",
+        visible: (g as any).visible !== false,
+        mediaAssetId: (g as any).mediaAssetId ?? undefined,
         sortOrder: g.sortOrder,
+        status: "ready",
       }));
     }
     try {
@@ -261,11 +266,25 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
             imageUrl: url,
             category: i % 2 === 0 ? "RENDERS" : "CONSTRUCTION",
             sortOrder: i,
+            status: "ready",
+            visible: true,
           }))
         : [];
     } catch {
       return [];
     }
+  });
+
+  const [gallerySettings, setGallerySettings] = useState<GallerySettingsData>({
+    enabled: (item as any)?.galleryEnabled !== false,
+    titleEn: (item as any)?.galleryTitleEn ?? "",
+    titleAr: (item as any)?.galleryTitleAr ?? "",
+    introEn: (item as any)?.galleryIntroEn ?? "",
+    introAr: (item as any)?.galleryIntroAr ?? "",
+    showFilters: (item as any)?.galleryShowFilters !== false,
+    showCaptions: (item as any)?.galleryShowCaptions !== false,
+    layout: ((item as any)?.galleryLayout || "grid") as "grid" | "carousel",
+    coverUrl: (item as any)?.galleryCoverUrl || undefined,
   });
 
   const [constructionUpdates, setConstructionUpdates] = useState<
@@ -365,26 +384,6 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
     return copy;
   };
 
-  // Gallery manipulation helpers
-  const handleMoveGallery = (idx: number, dir: "up" | "down") => {
-    setGalleryItems((prev) => moveItem(prev, idx, dir));
-    setIsDirty(true);
-  };
-
-  const handleRemoveGallery = (idx: number) => {
-    setGalleryItems((prev) => prev.filter((_, i) => i !== idx));
-    setIsDirty(true);
-  };
-
-  const handleUpdateGallery = (idx: number, patch: Partial<GalleryItemState>) => {
-    setGalleryItems((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...patch };
-      return copy;
-    });
-    setIsDirty(true);
-  };
-
   // Submit all project changes
   const handleSave = async (desiredStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED") => {
     const targetStatus = desiredStatus || formData.status || "DRAFT";
@@ -454,6 +453,18 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
       fd.set("keyFactsJson", JSON.stringify(keyFacts.map((item, i) => ({ ...item, sortOrder: i }))));
       fd.set("highlightsJson", JSON.stringify(highlights.map((item, i) => ({ ...item, sortOrder: i }))));
       fd.set("unitTypesJson", JSON.stringify(unitTypes.map((item, i) => ({ ...item, sortOrder: i }))));
+      // Project Gallery Configuration & Repeatable Items
+      fd.set("galleryEnabled", String(gallerySettings.enabled));
+      fd.set("galleryTitleEn", gallerySettings.titleEn);
+      fd.set("galleryTitleAr", gallerySettings.titleAr);
+      fd.set("galleryIntroEn", gallerySettings.introEn);
+      fd.set("galleryIntroAr", gallerySettings.introAr);
+      fd.set("galleryShowFilters", String(gallerySettings.showFilters));
+      fd.set("galleryShowCaptions", String(gallerySettings.showCaptions));
+      fd.set("galleryLayout", gallerySettings.layout);
+      if (gallerySettings.coverUrl) {
+        fd.set("galleryCoverUrl", gallerySettings.coverUrl);
+      }
       fd.set("galleryItemsJson", JSON.stringify(galleryItems.map((item, i) => ({ ...item, sortOrder: i }))));
       fd.set("constructionUpdatesJson", JSON.stringify(constructionUpdates.map((item, i) => ({ ...item, sortOrder: i }))));
       fd.set("connectivityJson", JSON.stringify(connectivity.map((item, i) => ({ ...item, sortOrder: i }))));
@@ -1693,232 +1704,28 @@ export function ProjectEditor({ item, assets }: ProjectEditorProps) {
         </section>
 
         {/* =========================================================
-            TAB 8: Professional Gallery (Image & Video Media Cards)
+            TAB 8: Project Gallery / معرض المشروع
         ========================================================= */}
         <section className="panel" style={{ display: activeTab === "gallery" ? "block" : "none" }}>
-          <h2>08. Architectural Gallery &amp; Category Albums</h2>
-          <p className="hint">Direct file uploads, video support, localized captions, and reorderable media cards.</p>
+          <h2>08. Project Gallery / معرض المشروع</h2>
+          <p className="hint">
+            Directly upload photos and videos, select from your media library, organize into album categories, and customize public gallery presentation.
+          </p>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-              marginBottom: "20px",
-              padding: "14px 18px",
-              background: "#f8faf9",
-              borderRadius: "8px",
-              border: "1px solid var(--line)",
+          <ProjectGalleryManager
+            items={galleryItems}
+            onChange={(newItems) => {
+              setGalleryItems(newItems);
+              setIsDirty(true);
             }}
-          >
-            <div>
-              <strong style={{ fontSize: "14px", color: "var(--forest)" }}>Gallery Media Items: {galleryItems.length}</strong>
-              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>
-                Renders: {galleryItems.filter((g) => g.category === "RENDERS").length} • Construction:{" "}
-                {galleryItems.filter((g) => g.category === "CONSTRUCTION").length} • Interiors:{" "}
-                {galleryItems.filter((g) => g.category === "INTERIOR").length}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setGalleryItems((prev) => [
-                  ...prev,
-                  {
-                    imageUrl: "",
-                    category: "RENDERS",
-                    captionEn: "",
-                    captionAr: "",
-                    altEn: "",
-                    altAr: "",
-                    isVideo: false,
-                    sortOrder: prev.length,
-                  },
-                ]);
-                setIsDirty(true);
-              }}
-              className="primary"
-              style={{ fontSize: "12px", padding: "8px 16px" }}
-            >
-              + Add Media Item to Gallery
-            </button>
-          </div>
-
-          {galleryItems.length === 0 ? (
-            <div style={{ padding: "40px 20px", textAlign: "center", background: "#fcfbfa", borderRadius: "8px", border: "1px dashed var(--line)" }}>
-              <p style={{ margin: "0 0 12px", color: "var(--muted)" }}>No gallery items added yet.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setGalleryItems([
-                    { imageUrl: "", category: "RENDERS", captionEn: "", captionAr: "", sortOrder: 0 },
-                  ]);
-                  setIsDirty(true);
-                }}
-                className="secondary"
-                style={{ fontSize: "12px" }}
-              >
-                + Add Your First Gallery Item
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {galleryItems.map((g, idx) => (
-                <div
-                  key={g.id || `gallery-item-${idx}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(260px, 320px) 1fr",
-                    gap: "18px",
-                    padding: "16px",
-                    background: "#ffffff",
-                    border: "1px solid var(--line)",
-                    borderRadius: "8px",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
-                  }}
-                >
-                  {/* Left Column: Direct File Upload & Media Preview */}
-                  <div>
-                    <MediaUploadField
-                      name={`gallery_media_${idx}`}
-                      label={`Media Asset #${idx + 1}`}
-                      value={g.imageUrl}
-                      kind={g.isVideo ? "VIDEO" : "IMAGE"}
-                      existingAssets={assets}
-                      onChange={(url, asset) => {
-                        handleUpdateGallery(idx, {
-                          imageUrl: url,
-                          isVideo: asset?.kind === "VIDEO",
-                        });
-                      }}
-                    />
-
-                    <div style={{ marginTop: "8px" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={g.isVideo || false}
-                          onChange={(e) => handleUpdateGallery(idx, { isVideo: e.target.checked })}
-                        />
-                        <span>This media is a video (MP4/WebM)</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Metadata, Category, Localized Captions, Actions */}
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              padding: "2px 8px",
-                              borderRadius: "4px",
-                              background: g.isVideo ? "#fef3c7" : "#e0e7e1",
-                              color: g.isVideo ? "#92400e" : "#152a20",
-                            }}
-                          >
-                            {g.isVideo ? "VIDEO" : "IMAGE"}
-                          </span>
-                          <span style={{ fontSize: "12px", color: "var(--muted)" }}>Position: #{idx + 1}</span>
-                        </div>
-
-                        {/* Reorder and Delete Controls */}
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveGallery(idx, "up")}
-                            disabled={idx === 0}
-                            className="secondary"
-                            style={{ padding: "4px 8px", fontSize: "11px" }}
-                            title="Move item up"
-                          >
-                            ↑ Up
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveGallery(idx, "down")}
-                            disabled={idx === galleryItems.length - 1}
-                            className="secondary"
-                            style={{ padding: "4px 8px", fontSize: "11px" }}
-                            title="Move item down"
-                          >
-                            ↓ Down
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveGallery(idx)}
-                            className="danger"
-                            style={{ padding: "4px 10px", fontSize: "11px" }}
-                            title="Remove from gallery"
-                          >
-                            Remove ✕
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Category Selector */}
-                      <div style={{ marginBottom: "12px" }}>
-                        <label style={{ fontSize: "12px", fontWeight: 600, display: "block", marginBottom: "4px" }}>
-                          Album Category
-                        </label>
-                        <select
-                          value={g.category}
-                          onChange={(e) => handleUpdateGallery(idx, { category: e.target.value })}
-                          style={{ width: "100%", maxWidth: "260px", padding: "6px 10px", fontSize: "12px" }}
-                        >
-                          <option value="RENDERS">Renders / التصميمات المعمارية</option>
-                          <option value="CONSTRUCTION">Construction / أعمال الموقع</option>
-                          <option value="INTERIOR">Interiors / التصميم الداخلي</option>
-                        </select>
-                      </div>
-
-                      {/* Bilingual Captions */}
-                      <div className="bilingual">
-                        <label>
-                          Caption (English)
-                          <input
-                            type="text"
-                            value={g.captionEn || ""}
-                            onChange={(e) => handleUpdateGallery(idx, { captionEn: e.target.value })}
-                            placeholder="e.g. Master bedroom suite overlooking private courtyard"
-                          />
-                        </label>
-                        <label>
-                          الوصف والتعليق (العربية)
-                          <input
-                            type="text"
-                            dir="rtl"
-                            value={g.captionAr || ""}
-                            onChange={(e) => handleUpdateGallery(idx, { captionAr: e.target.value })}
-                            placeholder="مثال: الجناح الرئيسي يطل على الفناء الخاص"
-                          />
-                        </label>
-                      </div>
-
-                      <div style={{ marginTop: "10px" }}>
-                        <label>
-                          Alt Text / Accessibility (English)
-                          <input
-                            type="text"
-                            value={g.altEn || ""}
-                            onChange={(e) => handleUpdateGallery(idx, { altEn: e.target.value })}
-                            placeholder="Descriptive text for screen readers"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            settings={gallerySettings}
+            onSettingsChange={(newSettings) => {
+              setGallerySettings(newSettings);
+              setIsDirty(true);
+            }}
+            existingAssets={assets}
+            projectName={formData.nameEn || "Project"}
+          />
         </section>
 
         {/* =========================================================

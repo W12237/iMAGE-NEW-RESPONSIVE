@@ -221,6 +221,30 @@ export type ProjectVisualTourItem = {
   assetCount?: number;
 };
 
+export type ProjectGalleryMediaItem = {
+  id: string;
+  url: string;
+  imageUrl: string;
+  category: string;
+  caption?: string;
+  alt: string;
+  isVideo: boolean;
+  videoUrl?: string;
+  posterUrl?: string;
+  focalPoint?: string;
+  sortOrder: number;
+};
+
+export type ProjectGallerySettings = {
+  enabled: boolean;
+  title: string;
+  intro?: string;
+  showFilters: boolean;
+  showCaptions: boolean;
+  layout: "grid" | "carousel";
+  coverUrl?: string;
+};
+
 export type ProjectDetailData = {
   id: string;
   slug: string;
@@ -231,6 +255,8 @@ export type ProjectDetailData = {
   coverImageUrl: string;
   coverImageAlt: string;
   gallery: string[];
+  galleryItems?: ProjectGalleryMediaItem[];
+  gallerySettings?: ProjectGallerySettings;
   logoUrl?: string;
   ctaLabel?: string;
   ctaUrl?: string;

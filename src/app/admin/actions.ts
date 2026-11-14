@@ -25,7 +25,9 @@ async function saveFontSizes(f: FormData) {
   }
   for (const settingKey of settingKeys) {
     if (!/^[a-z][a-zA-Z0-9]*$/.test(settingKey)) continue;
-    const rawDesktop = str(f, `fontSizeDesktop_${settingKey}`) || str(f, `fontSize_${settingKey}`);
+    const rawDesktop = f.has(`fontSizeDesktop_${settingKey}`)
+      ? str(f, `fontSizeDesktop_${settingKey}`)
+      : (str(f, `fontSize_${settingKey}`) || "");
     const rawMobile = str(f, `fontSizeMobile_${settingKey}`);
     const desktopNum = rawDesktop ? Number(rawDesktop) : null;
     const mobileNum = rawMobile ? Number(rawMobile) : null;
@@ -770,6 +772,15 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
     ctaLabelAr: str(f, "ctaLabelAr") || null,
     ctaUrl: str(f, "ctaUrl") || null,
     gallery: legacyGalleryImages,
+    galleryEnabled: f.has("galleryEnabled") ? bool(f, "galleryEnabled") : true,
+    galleryTitleEn: str(f, "galleryTitleEn") || null,
+    galleryTitleAr: str(f, "galleryTitleAr") || null,
+    galleryIntroEn: str(f, "galleryIntroEn") || null,
+    galleryIntroAr: str(f, "galleryIntroAr") || null,
+    galleryShowFilters: f.has("galleryShowFilters") ? bool(f, "galleryShowFilters") : true,
+    galleryShowCaptions: f.has("galleryShowCaptions") ? bool(f, "galleryShowCaptions") : true,
+    galleryLayout: str(f, "galleryLayout") || "grid",
+    galleryCoverUrl: str(f, "galleryCoverUrl") || null,
     projectType: str(f, "projectType") || "Residential",
     progressStatus: str(f, "progressStatus") || "Ongoing",
     fullDescriptionEn: str(f, "fullDescriptionEn") || null,
@@ -897,6 +908,9 @@ export async function saveProject(_: ActionState, f: FormData): Promise<ActionSt
               isVideo: Boolean(g.isVideo),
               videoUrl: g.videoUrl ? String(g.videoUrl).trim() : null,
               posterUrl: g.posterUrl ? String(g.posterUrl).trim() : null,
+              focalPoint: g.focalPoint ? String(g.focalPoint).trim() : "center",
+              visible: g.visible !== false,
+              mediaAssetId: g.mediaAssetId ? String(g.mediaAssetId).trim() : null,
               sortOrder: typeof g.sortOrder === "number" ? g.sortOrder : idx,
             })),
           });
