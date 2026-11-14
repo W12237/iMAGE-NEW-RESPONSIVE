@@ -113,7 +113,7 @@ describe("SiteHeader Original Design & Navigation", () => {
     expect(html).toContain('href="/en/journal"');
   });
 
-  it("renders 5 primary links in exact initial order and spells Careers correctly", () => {
+  it("renders 4 primary links in exact initial order (Home, About Us, Projects, Contact Us)", () => {
     const html = renderToStaticMarkup(
       <SiteHeader copy={content.en} page="home" initialOpen={true} />
     );
@@ -122,19 +122,16 @@ describe("SiteHeader Original Design & Navigation", () => {
     const homePos = html.indexOf(">Home</span>");
     const aboutPos = html.indexOf(">About Us</span>");
     const projectsPos = html.indexOf(">Projects</span>");
-    const careersPos = html.indexOf(">Careers</span>");
     const contactPos = html.indexOf(">Contact Us</span>");
 
     expect(homePos).toBeGreaterThan(-1);
     expect(aboutPos).toBeGreaterThan(-1);
     expect(projectsPos).toBeGreaterThan(-1);
-    expect(careersPos).toBeGreaterThan(-1);
     expect(contactPos).toBeGreaterThan(-1);
 
     expect(homePos).toBeLessThan(aboutPos);
     expect(aboutPos).toBeLessThan(projectsPos);
-    expect(projectsPos).toBeLessThan(careersPos);
-    expect(careersPos).toBeLessThan(contactPos);
+    expect(projectsPos).toBeLessThan(contactPos);
 
     // More Pages button exists with accessibility attributes
     expect(html).toContain('class="menu-more-button"');
@@ -142,14 +139,14 @@ describe("SiteHeader Original Design & Navigation", () => {
     expect(html).toContain('aria-controls="menu-secondary-nav"');
     expect(html).toContain("More Pages");
 
-    // Collapsed secondary links are unmounted so they cannot receive keyboard focus
+    // Collapsed secondary links (Careers, Journal, etc.) are unmounted initially so they cannot receive keyboard focus
     expect(html).not.toContain('id="menu-secondary-nav"');
 
     // Menu preview photograph panel is present
     expect(html).toContain('class="menu-image"');
   });
 
-  it("renders Arabic primary links in exact order with More Pages button", () => {
+  it("renders Arabic primary links in exact order (الرئيسية, من نحن, المشاريع, تواصل معنا) with More Pages button", () => {
     const html = renderToStaticMarkup(
       <SiteHeader copy={content.ar} page="projects" initialOpen={true} />
     );
@@ -157,19 +154,16 @@ describe("SiteHeader Original Design & Navigation", () => {
     const homePos = html.indexOf(">الرئيسية</span>");
     const aboutPos = html.indexOf(">من نحن</span>");
     const projectsPos = html.indexOf(">المشاريع</span>");
-    const careersPos = html.indexOf(">الوظائف</span>");
     const contactPos = html.indexOf(">تواصل معنا</span>");
 
     expect(homePos).toBeGreaterThan(-1);
     expect(aboutPos).toBeGreaterThan(-1);
     expect(projectsPos).toBeGreaterThan(-1);
-    expect(careersPos).toBeGreaterThan(-1);
     expect(contactPos).toBeGreaterThan(-1);
 
     expect(homePos).toBeLessThan(aboutPos);
     expect(aboutPos).toBeLessThan(projectsPos);
-    expect(projectsPos).toBeLessThan(careersPos);
-    expect(careersPos).toBeLessThan(contactPos);
+    expect(projectsPos).toBeLessThan(contactPos);
 
     // Arabic More Pages label
     expect(html).toContain("المزيد من الصفحات");

@@ -5,7 +5,7 @@ export default async function CmsLayout({ children }: { children: React.ReactNod
   const user = await requireAdmin();
   return (
     <div className="admin-shell">
-      <AdminSidebar userEmail={user.email} />
+      <AdminSidebar userEmail={user.email} userName={user.username} />
       <main className="admin-main">{children}</main>
     </div>
   );

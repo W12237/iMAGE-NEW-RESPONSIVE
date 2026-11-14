@@ -53,14 +53,12 @@ const STANDARD_PAGE_PRESETS = [
   { labelEn: "Home", labelAr: "الرئيسية", url: "#top", group: "primary" },
   { labelEn: "About Us", labelAr: "من نحن", url: "/about", group: "primary" },
   { labelEn: "Projects", labelAr: "المشاريع", url: "/projects", group: "primary" },
+  { labelEn: "Contact Us", labelAr: "تواصل معنا", url: "/contact", group: "primary" },
+  { labelEn: "Careers", labelAr: "الوظائف", url: "/careers", group: "secondary" },
   { labelEn: "Journal", labelAr: "يومياتنا", url: "/journal", group: "secondary" },
-  { labelEn: "Careers", labelAr: "الوظائف", url: "/careers", group: "primary" },
   { labelEn: "History", labelAr: "تاريخنا", url: "/history", group: "secondary" },
   { labelEn: "Team", labelAr: "فريقنا", url: "/team", group: "secondary" },
   { labelEn: "Partners", labelAr: "شركاؤنا", url: "/partners", group: "secondary" },
-  { labelEn: "Contact Us", labelAr: "تواصل معنا", url: "/contact", group: "primary" },
-  { labelEn: "Privacy Policy", labelAr: "سياسة الخصوصية", url: "/policy", group: "secondary" },
-  { labelEn: "Terms & Conditions", labelAr: "الشروط والأحكام", url: "/terms", group: "secondary" },
 ];
 
 export function NavigationEditor({

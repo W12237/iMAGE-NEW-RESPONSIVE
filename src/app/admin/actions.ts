@@ -1,12 +1,13 @@
 "use server";
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createSession, destroySession, requireAdmin } from "@/lib/session";
-import { loginSchema, newsSchema, projectSchema, safeUrl, sectionOrderSchema } from "@/lib/validation";
+import { createSession, destroySession, requireAdmin, invalidateAllUserSessions } from "@/lib/session";
+import { loginSchema, updateUsernameSchema, updatePasswordSchema, newsSchema, projectSchema, safeUrl, sectionOrderSchema } from "@/lib/validation";
+import { checkRateLimit, recordRateLimitFailure, resetRateLimit } from "@/lib/rate-limit";
 import { parsePageBlocksInput } from "@/lib/page-blocks-input";
 import { BLOCK_PAGES } from "@/lib/page-blocks";
 import { processVisualTourUpload, deleteVisualTourAssets } from "@/lib/tours";
@@ -82,13 +83,171 @@ async function storeMedia(file:File,expectedKind?:"IMAGE"|"VIDEO"|"DOCUMENT"):Pr
   try{return{asset:await prisma.mediaAsset.create({data:{url:`/uploads/${storedName}`,filename:file.name,mimeType:file.type,size:file.size,kind:type.kind},select:{id:true,url:true,filename:true,mimeType:true,size:true,kind:true}})}}catch{await unlink(diskPath).catch(()=>undefined);return{error:"Database failure. The upload was not added to the Media Library."}}
 }
 
-export async function loginAction(_:ActionState, formData:FormData):Promise<ActionState>{
-  const parsed=loginSchema.safeParse({email:formData.get("email"),password:formData.get("password")});
-  if(!parsed.success)return {error:"Enter a valid email and a password of at least 8 characters."};
-  const user=await prisma.adminUser.findUnique({where:{email:parsed.data.email}});
-  if(!user||!(await compare(parsed.data.password,user.passwordHash)))return {error:"Invalid email or password."};
-  await createSession(user.id); redirect("/admin");
+export async function loginAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const rawIdentifier = (formData.get("identifier") || formData.get("email") || "").toString().trim();
+  const rawPassword = (formData.get("password") || "").toString();
+
+  const rateCheck = checkRateLimit("login", rawIdentifier || "anonymous", 5, 15 * 60 * 1000);
+  if (!rateCheck.allowed) {
+    return {
+      error: `Too many failed login attempts. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+    };
+  }
+
+  const parsed = loginSchema.safeParse({
+    identifier: rawIdentifier,
+    email: rawIdentifier,
+    password: rawPassword,
+  });
+
+  if (!parsed.success) {
+    recordRateLimitFailure("login", rawIdentifier || "anonymous");
+    const firstIssue = parsed.error.issues[0]?.message;
+    return { error: firstIssue || "Enter a valid username or email and a password of at least 8 characters." };
+  }
+
+  const normalized = parsed.data.identifier;
+  const user = await prisma.adminUser.findFirst({
+    where: {
+      OR: [
+        { email: normalized },
+        { username: normalized },
+      ],
+    },
+  });
+
+  if (!user || !(await compare(parsed.data.password, user.passwordHash))) {
+    recordRateLimitFailure("login", rawIdentifier || "anonymous");
+    return { error: "Invalid username, email, or password." };
+  }
+
+  resetRateLimit("login", rawIdentifier || "anonymous");
+  await createSession(user.id);
+  redirect("/admin");
 }
+
+export async function updateAdminUsername(_: ActionState, formData: FormData): Promise<ActionState> {
+  const currentUser = await requireAdmin();
+
+  const rateCheck = checkRateLimit("username_change", currentUser.id, 5, 15 * 60 * 1000);
+  if (!rateCheck.allowed) {
+    return {
+      error: `Too many attempts. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+    };
+  }
+
+  const parsed = updateUsernameSchema.safeParse({
+    newUsername: formData.get("newUsername"),
+    currentPassword: formData.get("currentPassword"),
+  });
+
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0]?.message;
+    return { error: firstIssue || "Please check your input and try again." };
+  }
+
+  const normalizedUsername = parsed.data.newUsername.toLowerCase().trim();
+
+  // Verify current password against stored hash
+  const passwordMatch = await compare(parsed.data.currentPassword, currentUser.passwordHash);
+  if (!passwordMatch) {
+    recordRateLimitFailure("username_change", currentUser.id);
+    return { error: "Incorrect current password. Please enter your valid current password." };
+  }
+
+  // Check if same as current
+  if (currentUser.username?.toLowerCase() === normalizedUsername) {
+    return { error: "The new username must be different from your current username." };
+  }
+
+  // Check uniqueness across both username and email
+  const existingWithUsername = await prisma.adminUser.findFirst({
+    where: {
+      id: { not: currentUser.id },
+      OR: [
+        { username: normalizedUsername },
+        { email: normalizedUsername },
+      ],
+    },
+  });
+
+  if (existingWithUsername) {
+    return { error: "This username is already taken. Please choose another username." };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.adminUser.update({
+        where: { id: currentUser.id },
+        data: { username: normalizedUsername },
+      });
+      // Invalidate all active sessions for this user to enforce fresh authentication
+      await tx.adminSession.deleteMany({
+        where: { userId: currentUser.id },
+      });
+    });
+  } catch (error) {
+    console.error("Failed to update admin username:", error);
+    return { error: "Database failure while updating username. Please try again." };
+  }
+
+  resetRateLimit("username_change", currentUser.id);
+  await destroySession();
+  redirect("/admin/login?message=username_updated");
+}
+
+export async function updateAdminPassword(_: ActionState, formData: FormData): Promise<ActionState> {
+  const currentUser = await requireAdmin();
+
+  const rateCheck = checkRateLimit("password_change", currentUser.id, 5, 15 * 60 * 1000);
+  if (!rateCheck.allowed) {
+    return {
+      error: `Too many attempts. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+    };
+  }
+
+  const parsed = updatePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0]?.message;
+    return { error: firstIssue || "Please check your password inputs." };
+  }
+
+  // Verify current password against stored hash
+  const passwordMatch = await compare(parsed.data.currentPassword, currentUser.passwordHash);
+  if (!passwordMatch) {
+    recordRateLimitFailure("password_change", currentUser.id);
+    return { error: "Incorrect current password. Please enter your valid current password." };
+  }
+
+  // Hash new password using bcrypt (cost factor 12)
+  const newHash = await hash(parsed.data.newPassword, 12);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.adminUser.update({
+        where: { id: currentUser.id },
+        data: { passwordHash: newHash },
+      });
+      // Invalidate all active sessions (including this one)
+      await tx.adminSession.deleteMany({
+        where: { userId: currentUser.id },
+      });
+    });
+  } catch (error) {
+    console.error("Failed to update admin password:", error);
+    return { error: "Database failure while updating password. Please try again." };
+  }
+
+  resetRateLimit("password_change", currentUser.id);
+  await destroySession();
+  redirect("/admin/login?message=password_updated");
+}
+
 export async function logoutAction(){await destroySession();redirect("/admin/login");}
 
 export async function saveTypography(_:ActionState,f:FormData):Promise<ActionState>{

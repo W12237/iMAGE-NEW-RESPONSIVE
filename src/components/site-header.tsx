@@ -245,12 +245,9 @@ export function SiteHeader({
     }
   };
 
-  const desktopItems = copy.nav?.filter((item) => item.visible !== false) || [];
-  const primaryNav = desktopItems.filter((item) => (item.group || "primary") === "primary");
-  const secondaryNav = desktopItems.filter((item) => item.group === "secondary");
-
-  // On mobile view, all customizable links configured for mobile appear directly
-  const mobileNav = copy.nav?.filter((item) => item.mobileVisible !== false) || [];
+  const navItems = copy.nav?.filter((item) => item.visible !== false) || [];
+  const primaryNav = navItems.filter((item) => (item.group || "primary") === "primary");
+  const secondaryNav = navItems.filter((item) => item.group === "secondary");
 
   const renderNavItem = (item: NavItemContent, i: number, isSecondary = false) => {
     const resolved = resolveHref(item.href, item.external);
@@ -449,15 +446,7 @@ export function SiteHeader({
                   aria-label="Main navigation"
                   onMouseLeave={onNavMouseLeave}
                 >
-                  {/* Mobile Navigation List: Displays ALL mobileVisible links directly */}
-                  <div className="menu-nav-mobile-list">
-                    {mobileNav.map((item, i) =>
-                      renderNavItem(item, i, item.group === "secondary")
-                    )}
-                  </div>
-
-                  {/* Desktop Navigation List: Primary links + expandable Secondary links */}
-                  <div className="menu-nav-desktop-list">
+                  <div className="menu-nav-list">
                     {primaryNav.map((item, i) => renderNavItem(item, i, false))}
 
                     {secondaryNav.length > 0 && (

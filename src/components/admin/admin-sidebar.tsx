@@ -6,6 +6,7 @@ import { logoutAction } from "@/app/admin/actions";
 
 interface AdminSidebarProps {
   userEmail: string;
+  userName?: string | null;
 }
 
 interface NavItem {
@@ -19,7 +20,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export function AdminSidebar({ userEmail }: AdminSidebarProps) {
+export function AdminSidebar({ userEmail, userName }: AdminSidebarProps) {
   const pathname = usePathname();
 
   const navGroups: NavGroup[] = [
@@ -224,6 +225,16 @@ export function AdminSidebar({ userEmail }: AdminSidebarProps) {
             </svg>
           ),
         },
+        {
+          label: "Account settings",
+          href: "/admin/account",
+          icon: () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          ),
+        },
       ],
     },
   ];
@@ -281,17 +292,17 @@ export function AdminSidebar({ userEmail }: AdminSidebarProps) {
 
       {/* Pinned Bottom User & Logout Session */}
       <div className="admin-sidebar-footer">
-        <div className="admin-user-profile">
+        <Link href="/admin/account" className="admin-user-profile" title="Account settings" aria-label="Manage account settings">
           <div className="admin-user-avatar" aria-hidden="true">
-            {userEmail ? userEmail.charAt(0).toUpperCase() : "A"}
+            {userName ? userName.charAt(0).toUpperCase() : userEmail ? userEmail.charAt(0).toUpperCase() : "A"}
           </div>
           <div className="admin-user-info">
-            <span className="admin-user-email" title={userEmail}>
-              {userEmail}
+            <span className="admin-user-email" title={userName || userEmail}>
+              {userName || userEmail}
             </span>
             <span className="admin-user-role">Administrator</span>
           </div>
-        </div>
+        </Link>
         <form action={logoutAction} className="admin-logout-form">
           <button type="submit" className="admin-logout-btn" title="Sign out of CMS" aria-label="Sign out">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

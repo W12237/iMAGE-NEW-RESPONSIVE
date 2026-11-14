@@ -26,3 +26,11 @@ export async function destroySession() {
   if (token) await prisma.adminSession.deleteMany({ where: { tokenHash: hash(token) } });
   store.delete(COOKIE);
 }
+
+export async function invalidateAllUserSessions(userId: string) {
+  if (userId) {
+    await prisma.adminSession.deleteMany({ where: { userId } });
+  }
+  const store = await cookies();
+  store.delete(COOKIE);
+}
